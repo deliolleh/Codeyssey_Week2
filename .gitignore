@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 로컬 버전 관리 도구 설정 (필요 버전은 README와 main.py의 검사로 명시)
+.python-version
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
