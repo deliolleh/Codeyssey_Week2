@@ -1,5 +1,7 @@
 """게임 전체 흐름을 관리하는 QuizGame 클래스."""
 
+from inputs import ask_int
+
 # 화면에 반복해서 쓰이는 값은 상수로 빼둔다.
 # 값이 한 군데에만 있으면 디자인을 바꿀 때 한 줄만 고치면 된다.
 LINE = "=" * 44
@@ -48,35 +50,9 @@ class QuizGame:
 
     def select_menu(self):
         """올바른 메뉴 번호를 입력할 때까지 되묻고, 그 번호를 반환한다."""
-        last = len(MENU_ITEMS)  # 메뉴가 늘어나도 허용 범위가 자동으로 맞춰진다
-        # while은 몇 번 반복할지 미리 알 수 없고 조건이 풀릴 때까지 돌려야 할 때 쓴다.
-        # 사용자가 몇 번이나 잘못 입력할지 알 수 없으므로 for가 아니라 while이다.
-        while True:
-            # input()이 돌려주는 값은 항상 문자열(str)이다.
-            # strip()으로 앞뒤 공백을 먼저 없애야 " 1 " 같은 입력도 처리된다.
-            raw = input("선택: ").strip()
-
-            if not raw:
-                # 빈 문자열은 조건문에서 False로 취급된다.
-                print(f"⚠️ 입력이 비어 있습니다. 1-{last} 사이의 숫자를 입력하세요.")
-                continue
-
-            # 문자열을 정수(int)로 바꾼다. "abc"처럼 숫자가 아니면 ValueError가 난다.
-            # try/except로 잡지 않으면 프로그램이 그 자리에서 죽는다.
-            try:
-                number = int(raw)
-            except ValueError:
-                print(f"⚠️ 잘못된 입력입니다. 1-{last} 사이의 숫자를 입력하세요.")
-                continue
-
-            if not 1 <= number <= last:
-                print(f"⚠️ 잘못된 입력입니다. 1-{last} 사이의 숫자를 입력하세요.")
-                continue
-
-            # 위 세 관문을 모두 통과했을 때만 여기 도달한다.
-            # 즉 이 메서드는 항상 유효한 번호만 반환하므로,
-            # 호출하는 쪽(run)은 다시 검사할 필요가 없다.
-            return number
+        # 검증 규칙은 ask_int가 전부 처리하므로 여기서는 "무엇을 묻는지"만 정한다.
+        # 메뉴가 늘어나도 len(MENU_ITEMS)가 허용 범위를 자동으로 맞춰준다.
+        return ask_int("선택: ", 1, len(MENU_ITEMS))
 
     def run(self):
         """종료를 고를 때까지 메뉴를 반복해서 보여준다."""
