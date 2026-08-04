@@ -6,7 +6,10 @@
 
 Quiz가 '문제 하나'를 맡듯 User는 '사람 하나'를 맡는다.
 파일을 어떻게 저장하는지, 게임을 어떻게 진행하는지는 알지 못한다.
-이름과 기록을 들고 있고, 기록을 더하는 방법만 안다.
+닉네임과 기록을 들고 있고, 기록을 더하는 방법만 안다.
+
+사용자를 구분하는 값은 실명일 이유가 없어 '닉네임'이라고 부른다.
+화면·코드·저장 파일이 모두 같은 단어를 쓰도록 맞췄다.
 """
 
 from datetime import datetime
@@ -15,14 +18,15 @@ import config
 
 
 class User:
-    """이름과 게임 기록을 가진 사용자."""
+    """닉네임과 게임 기록을 가진 사용자."""
 
-    def __init__(self, name, best_score=0, history=None):
-        # 이름은 사용자를 구분하는 기준이므로 앞뒤 공백을 없애 통일한다.
+    def __init__(self, nickname, best_score=0, history=None):
+        # 닉네임은 사용자를 구분하는 기준이므로 앞뒤 공백을 없애 통일한다.
         # " 재혁 "과 "재혁"이 다른 사람으로 취급되면 기록이 갈라진다.
-        self.name = str(name).strip()
-        if not self.name:
-            raise ValueError("사용자 이름이 비어 있습니다.")
+        # 실명일 필요가 없어 '이름'이 아니라 '닉네임'이라고 부른다.
+        self.nickname = str(nickname).strip()
+        if not self.nickname:
+            raise ValueError("닉네임이 비어 있습니다.")
 
         self.best_score = best_score if isinstance(best_score, int) and best_score >= 0 else 0
         # history를 그대로 받지 않고 list()로 감싸는 이유는,
@@ -73,7 +77,7 @@ class User:
     def to_dict(self):
         """JSON에 담을 수 있는 딕셔너리로 바꾼다."""
         return {
-            "name": self.name,
+            "nickname": self.nickname,
             "best_score": self.best_score,
             "history": self.history,
         }
@@ -93,7 +97,7 @@ def create_user(data):
         history = []
 
     return User(
-        name=data.get("name", ""),
+        nickname=data.get("nickname", ""),
         best_score=data.get("best_score", 0),
         history=[record for record in history if isinstance(record, dict)],
     )

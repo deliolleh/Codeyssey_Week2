@@ -21,6 +21,7 @@ from pathlib import Path
 
 from default_data import DEFAULT_BEST_SCORE, DEFAULT_QUIZZES
 from quiz import create_quiz
+from user import create_user
 
 # 저장 파일은 프로젝트 루트에 둔다.
 # __file__은 이 파일의 경로이고, 그 부모 디렉터리가 곧 프로젝트 루트다.
@@ -42,7 +43,11 @@ class Storage:
     # ---------- 불러오기 ----------
 
     def load(self):
-        """저장된 자료를 읽어 (퀴즈 목록, 최고 점수)로 돌려준다.
+        """저장된 자료를 읽어 딕셔너리로 돌려준다.
+
+        돌려주는 항목이 여럿이라 순서대로 나열하면 부르는 쪽에서 헷갈리기 쉽다.
+        이름표로 꺼내 쓸 수 있게 딕셔너리로 묶고, JSON의 키 이름과 맞춰 두었다.
+            quizzes / best_score / users
 
         파일이 없거나 망가졌으면 기본 퀴즈로 되돌린다.
         어떤 경우에도 예외를 밖으로 내보내지 않는다.
@@ -50,7 +55,7 @@ class Storage:
         """
         if not self.path.exists():
             print("📂 저장된 데이터가 없어 기본 퀴즈로 시작합니다.")
-            return self.build_quizzes(DEFAULT_QUIZZES), DEFAULT_BEST_SCORE
+            return self.recover(quiet=True)
 
         try:
             with open(self.path, encoding="utf-8") as file:
@@ -71,10 +76,14 @@ class Storage:
 
         quizzes = self.read_quizzes(data)
         best_score = self.read_best_score(data)
+        users = self.read_users(data)
 
-        print(f"📂 저장된 데이터를 불러왔습니다. "
-              f"(퀴즈 {len(quizzes)}개, 최고 점수 {best_score}점)")
-        return quizzes, best_score
+        summary = f"퀴즈 {len(quizzes)}개, 최고 점수 {best_score}점"
+        if users:
+            summary += f", 사용자 {len(users)}명"
+        print(f"📂 저장된 데이터를 불러왔습니다. ({summary})")
+
+        return {"quizzes": quizzes, "best_score": best_score, "users": users}
 
     def read_quizzes(self, data):
         """자료에서 퀴즈 목록을 꺼낸다. 쓸 만한 게 없으면 기본 퀴즈로 채운다."""
@@ -99,6 +108,40 @@ class Storage:
             return DEFAULT_BEST_SCORE
         return best_score
 
+    def read_users(self, data):
+        """자료에서 사용자 목록을 꺼낸다.
+
+        사용자 기록이 없거나 깨져 있어도 게임 자체는 할 수 있으므로,
+        퀴즈와 달리 기본값으로 되돌리지 않고 빈 목록으로 시작한다.
+        """
+        raw = data.get("users")
+        if raw is None:
+            # users 키가 아예 없는 경우다.
+            # 사용자 기능이 생기기 전에 만들어진 파일도 그대로 읽히게 한다.
+            return []
+        if not isinstance(raw, list):
+            print("⚠️ 사용자 목록의 형태가 올바르지 않아 비우고 시작합니다.")
+            return []
+
+        users = []
+        seen = set()
+        for index, item in enumerate(raw, start=1):
+            try:
+                user = create_user(item)
+            except ValueError as error:
+                print(f"⚠️ {index}번째 사용자를 건너뜁니다: {error}")
+                continue
+
+            # 파일을 손으로 고치다 같은 이름이 두 번 들어갈 수 있다.
+            # 그대로 두면 기록이 갈라지므로 먼저 온 쪽만 남긴다.
+            key = user.nickname.lower()
+            if key in seen:
+                print(f"⚠️ 닉네임이 겹치는 사용자 '{user.nickname}'을 건너뜁니다.")
+                continue
+            seen.add(key)
+            users.append(user)
+        return users
+
     def build_quizzes(self, raw_list):
         """딕셔너리 목록을 Quiz 객체 목록으로 바꾼다.
 
@@ -113,15 +156,20 @@ class Storage:
                 print(f"⚠️ {index}번째 문제를 건너뜁니다: {error}")
         return quizzes
 
-    def recover(self):
-        """읽기에 실패했을 때 기본 퀴즈로 되돌린다."""
-        print("   기본 퀴즈로 복구합니다. 저장하면 기존 파일을 덮어씁니다.")
-        return self.build_quizzes(DEFAULT_QUIZZES), DEFAULT_BEST_SCORE
+    def recover(self, quiet=False):
+        """읽기에 실패했거나 파일이 없을 때 기본 상태를 돌려준다."""
+        if not quiet:
+            print("   기본 퀴즈로 복구합니다. 저장하면 기존 파일을 덮어씁니다.")
+        return {
+            "quizzes": self.build_quizzes(DEFAULT_QUIZZES),
+            "best_score": DEFAULT_BEST_SCORE,
+            "users": [],
+        }
 
     # ---------- 저장하기 ----------
 
-    def save(self, quizzes, best_score):
-        """퀴즈와 최고 점수를 state.json에 쓴다. 성공 여부를 돌려준다."""
+    def save(self, quizzes, best_score, users=()):
+        """지금 상태를 state.json에 쓴다. 성공 여부를 돌려준다."""
         data = {
             "_note": SCHEMA_NOTE,
             # 퀴즈 풀기가 목록을 제자리에서 섞기 때문에, 저장할 때 id 순으로 되돌린다.
@@ -129,6 +177,11 @@ class Storage:
             # 점수만 바뀐 경우에 파일 전체가 뒤바뀌는 일도 없다.
             "quizzes": [quiz.to_dict() for quiz in sorted(quizzes, key=lambda q: q.quiz_id)],
             "best_score": best_score,
+            # 사용자도 닉네임 순으로 정렬해 둔다. 접속 순서대로 쌓이면
+            # 새로 접속할 때마다 파일에서 위치가 바뀌어 변경 내역이 지저분해진다.
+            "users": [
+                user.to_dict() for user in sorted(users, key=lambda u: u.nickname.lower())
+            ],
         }
 
         try:

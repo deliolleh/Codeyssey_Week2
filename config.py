@@ -60,6 +60,11 @@ MAX_HISTORY = 50
 # 점수 확인 화면에서 한 번에 보여줄 최근 기록 수
 RECENT_HISTORY_COUNT = 5
 
+# 닉네임을 입력하지 않았을 때 쓰는 공용 계정 이름.
+# 마지막 사람을 기본값으로 두면 다음 사람이 무심코 Enter를 눌렀을 때
+# 남의 기록에 자기 점수가 섞인다. 익명 계정으로 보내면 그런 일이 없다.
+ANONYMOUS_NICKNAME = "anonymous"
+
 # 판이 끝난 방식을 화면에 보여줄 이름
 ENDING_LABEL = {
     "cleared": "완주",

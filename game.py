@@ -60,12 +60,15 @@ class QuizGame:
         # storage를 밖에서 받을 수 있게 해 두면 다른 파일을 쓰게 하거나
         # 시험 삼아 임시 파일로 돌려보기가 쉬워진다.
         self.storage = storage or Storage()
-        self.quizzes, self.best_score = self.storage.load()
+        state = self.storage.load()
+        self.quizzes = state["quizzes"]  # list: Quiz 객체들
+        self.best_score = state["best_score"]  # int: 전체 최고 점수
+        self.users = state["users"]  # list: User 객체들
         self.running = True  # bool: 게임 루프를 계속 돌릴지 여부
 
     def save(self):
         """지금 상태를 파일에 저장한다."""
-        return self.storage.save(self.quizzes, self.best_score)
+        return self.storage.save(self.quizzes, self.best_score, self.users)
 
     # ---------- 메뉴 ----------
 
