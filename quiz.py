@@ -37,6 +37,10 @@ class Quiz:
     # 하위 클래스에서 같은 이름을 다시 정의하면 그 값이 우선한다.
     TYPE = "base"
     TYPE_LABEL = "기본"
+    # 퀴즈를 추가할 때 유형을 고르는 화면에 함께 보여줄 한 줄 설명.
+    # 이름과 설명을 클래스가 함께 들고 있어야, 유형을 추가할 때
+    # 화면 쪽 코드를 따로 고치지 않아도 된다.
+    TYPE_HELP = ""
     BASE_POINT = 1
 
     # 난이도 배수는 딕셔너리(dict)로 관리한다.
@@ -164,6 +168,7 @@ class ChoiceQuiz(Quiz):
 
     TYPE = "choice"
     TYPE_LABEL = "선택형"
+    TYPE_HELP = "여러 선택지 중 하나를 번호로 고름"
     BASE_POINT = config.TYPE_BASE_POINT["choice"]
 
     def __init__(self, question, choices, answer, **kwargs):
@@ -215,6 +220,7 @@ class OXQuiz(Quiz):
 
     TYPE = "ox"
     TYPE_LABEL = "O/X"
+    TYPE_HELP = "맞다 틀리다로 답함"
     BASE_POINT = config.TYPE_BASE_POINT["ox"]
 
     def __init__(self, question, choices=None, answer=1, **kwargs):
@@ -256,6 +262,7 @@ class ShortAnswerQuiz(Quiz):
 
     TYPE = "short"
     TYPE_LABEL = "주관식"
+    TYPE_HELP = "답을 직접 입력함"
     BASE_POINT = config.TYPE_BASE_POINT["short"]
 
     def __init__(self, question, choices=None, answer=None, **kwargs):

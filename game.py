@@ -1,16 +1,36 @@
 """게임 전체 흐름을 관리하는 QuizGame 클래스."""
 
 import random
+from enum import Enum
 
 import config
 from inputs import ask_int, ask_text, ask_yes_no
-from quiz import create_quiz
+from quiz import QUIZ_TYPES, create_quiz
 from storage import Storage
 
 # 화면에 반복해서 쓰이는 값은 상수로 빼둔다.
 # 값이 한 군데에만 있으면 디자인을 바꿀 때 한 줄만 고치면 된다.
-LINE = "=" * 44
+LINE_WIDTH = 44
+LINE = "=" * LINE_WIDTH  # 화면을 크게 나누는 줄
+SUB_LINE = "-" * LINE_WIDTH  # 문제와 문제 사이를 나누는 줄
 TITLE = "🗺️  대한민국 지역 퀴즈 게임  🗺️"
+
+
+class Ending(Enum):
+    """한 판이 끝난 방식.
+
+    정해진 몇 가지 중 하나뿐인 값은 Enum으로 두면 오타를 바로 잡아낸다.
+    문자열을 그대로 쓰면 "cleard"라고 잘못 적어도 프로그램이 조용히 지나가고,
+    조건문이 어긋난 채로 엉뚱한 결과가 나온다.
+    Ending.CLEARD라고 쓰면 그 줄에서 AttributeError가 난다.
+
+    괄호 안의 값은 기록 파일에 저장할 이름이다. Enum 자체는 JSON에 담을 수 없어
+    저장할 때는 .value로 문자열을 꺼낸다.
+    """
+
+    CLEARED = "cleared"  # 도전한 문제를 모두 맞힘
+    WRONG = "wrong"  # 틀려서 멈춤
+    GAVE_UP = "gave_up"  # 진행 중에 그만둠
 
 # 메뉴 항목은 리스트(list)로 관리한다.
 # 리스트는 "순서가 있는 여러 개의 값"을 담는 자료형이고,
@@ -116,14 +136,14 @@ class QuizGame:
         # 문제 수만큼만 돌면 되므로 for를 쓴다.
         for number, quiz in enumerate(self.quizzes, start=1):
             print()
-            print("-" * 44)
+            print(SUB_LINE)
             quiz.display(number)
             print()
 
             answer = self.ask_answer_or_quit(quiz, hints_left, number)
             if answer is None:
                 # 그만두기를 선택했다. 지금까지 쌓은 점수와 연승은 그대로 살린다.
-                self.show_result(score, streak, ending="gave_up")
+                self.show_result(score, streak, Ending.GAVE_UP)
                 break
             raw, used_hint, hints_left = answer
 
@@ -132,7 +152,7 @@ class QuizGame:
                 # 연승전은 오답이 곧 게임 종료라, 여기가 그 문제에 대해
                 # 무언가를 배울 수 있는 마지막 기회다. 그래서 해설을 붙인다.
                 quiz.show_explanation()
-                self.show_result(score, streak, ending="wrong")
+                self.show_result(score, streak, Ending.WRONG)
                 break
 
             point = quiz.get_point(used_hint)
@@ -153,7 +173,7 @@ class QuizGame:
             # 여기서는 "한 문제도 틀리지 않고 전 문항을 통과했다"는 뜻이 된다.
             # if의 else와 뜻이 다르므로 헷갈리기 쉽지만, 종료 조건이 두 가지인
             # 연승전에서는 두 결말을 각자의 자리에 둘 수 있어 잘 맞는다.
-            self.show_result(score, streak, ending="cleared")
+            self.show_result(score, streak, Ending.CLEARED)
 
         # break로 빠져나와도, else를 지나 끝나도 결국 이 줄로 온다.
         # 덕분에 두 결말 모두에서 같은 복습 절차를 거치게 된다.
@@ -261,16 +281,14 @@ class QuizGame:
     def show_result(self, score, streak, ending):
         """한 판이 끝났을 때 결과를 보여주고 최고 점수를 갱신한다.
 
-        끝나는 방식이 세 가지라 참/거짓 대신 이름을 받는다.
-            cleared  : 등록된 문제를 모두 맞힘
-            wrong    : 틀려서 멈춤
-            gave_up  : 진행 중에 그만둠
+        ending은 Ending 중 하나다. 끝나는 방식이 세 가지라
+        참/거짓 두 갈래로는 담을 수 없다.
         """
         print()
         print(LINE)
-        if ending == "cleared":
+        if ending is Ending.CLEARED:
             print(f"🎉 등록된 {streak}문제를 모두 맞혔습니다!")
-        elif ending == "gave_up":
+        elif ending is Ending.GAVE_UP:
             print(f"🚪 중단했습니다 — {streak}연승까지 기록됩니다.")
         else:
             print(f"💀 Game Over — {streak}연승에서 멈췄습니다.")
@@ -344,13 +362,12 @@ class QuizGame:
     def ask_quiz_type(self):
         """어떤 유형의 문제를 만들지 고르게 한다."""
         print("\n문제 유형을 고르세요.")
-        types = [
-            ("choice", "선택형 — 여러 선택지 중 하나를 고름"),
-            ("ox", "O/X — 맞다 틀리다로 답함"),
-            ("short", "주관식 — 답을 직접 입력함"),
-        ]
-        for number, (_, label) in enumerate(types, start=1):
-            print(f"  {number}. {label}")
+        # 유형 목록을 여기서 다시 적지 않고 QUIZ_TYPES에서 꺼내 쓴다.
+        # 목록을 복사해 두면 유형을 추가할 때 quiz.py와 이 파일을 모두 고쳐야 하고,
+        # 한쪽을 놓치면 화면마다 다른 이름이 나온다.
+        types = list(QUIZ_TYPES.items())
+        for number, (_, quiz_class) in enumerate(types, start=1):
+            print(f"  {number}. {quiz_class.TYPE_LABEL} — {quiz_class.TYPE_HELP}")
 
         picked = ask_int("유형 선택: ", 1, len(types))
         return types[picked - 1][0]
@@ -478,10 +495,10 @@ class QuizGame:
         """
         print("점수 = 유형 기본점 × 난이도 배수 (힌트를 쓰면 절반, 내림)")
 
-        # 유형 이름은 Quiz 하위 클래스가 갖고 있으므로 표를 만들어 짝지어 준다.
-        labels = {"ox": "O/X", "choice": "선택형", "short": "주관식"}
+        # 유형 이름도 QUIZ_TYPES에서 꺼낸다.
         types = " · ".join(
-            f"{labels[key]} {point}점" for key, point in config.TYPE_BASE_POINT.items()
+            f"{QUIZ_TYPES[key].TYPE_LABEL} {point}점"
+            for key, point in config.TYPE_BASE_POINT.items()
         )
         levels = " · ".join(
             f"{config.DIFFICULTY_LABEL[key]} ×{weight}"
