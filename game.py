@@ -3,9 +3,9 @@
 import random
 
 import config
-from default_data import DEFAULT_BEST_SCORE, DEFAULT_QUIZZES
 from inputs import ask_int, ask_text, ask_yes_no
 from quiz import create_quiz
+from storage import Storage
 
 # 화면에 반복해서 쓰이는 값은 상수로 빼둔다.
 # 값이 한 군데에만 있으면 디자인을 바꿀 때 한 줄만 고치면 된다.
@@ -30,28 +30,21 @@ MENU_ITEMS = [
 class QuizGame:
     """메뉴를 보여주고, 사용자가 고른 기능을 실행하는 게임 본체."""
 
-    def __init__(self):
+    def __init__(self, storage=None):
         # __init__은 객체가 만들어질 때 자동으로 한 번 실행되는 메서드다.
         # self는 "지금 만들어지고 있는 바로 그 객체"를 가리키고,
         # self.___ 형태로 붙인 값이 그 객체의 속성(attribute)이 된다.
         # 메서드 안의 지역 변수와 달리 객체가 사는 동안 계속 유지된다.
-        self.quizzes = self.load_default_quizzes()  # list: Quiz 객체들
-        self.best_score = DEFAULT_BEST_SCORE  # int: 최고 점수
+        #
+        # storage를 밖에서 받을 수 있게 해 두면 다른 파일을 쓰게 하거나
+        # 시험 삼아 임시 파일로 돌려보기가 쉬워진다.
+        self.storage = storage or Storage()
+        self.quizzes, self.best_score = self.storage.load()
         self.running = True  # bool: 게임 루프를 계속 돌릴지 여부
 
-    def load_default_quizzes(self):
-        """기본 퀴즈 데이터를 Quiz 객체 목록으로 바꾼다.
-
-        형식이 잘못된 문제는 건너뛰고 나머지는 살린다.
-        한 문제가 잘못됐다고 게임 전체를 못 하게 만들 이유가 없기 때문이다.
-        """
-        quizzes = []
-        for data in DEFAULT_QUIZZES:
-            try:
-                quizzes.append(create_quiz(data))
-            except ValueError as error:
-                print(f"⚠️ {data.get('id', '?')}번 문제를 건너뜁니다: {error}")
-        return quizzes
+    def save(self):
+        """지금 상태를 파일에 저장한다."""
+        return self.storage.save(self.quizzes, self.best_score)
 
     # ---------- 메뉴 ----------
 
@@ -285,6 +278,7 @@ class QuizGame:
         if score > self.best_score:
             print(f"🎉 새로운 최고 점수입니다! (이전 {self.best_score}점)")
             self.best_score = score
+            self.save()
         else:
             print(f"   최고 점수: {self.best_score}점")
         print(LINE)
@@ -330,6 +324,11 @@ class QuizGame:
         print(f"\n✅ 퀴즈가 추가되었습니다! (총 {len(self.quizzes)}문항)")
         print(f"   {quiz.TYPE_LABEL} · {quiz.difficulty_label()} · {quiz.get_point()}점 "
               f"· 정답 '{quiz.answer_text()}'")
+
+        # 추가하자마자 저장한다. 나중에 한 번에 저장하면
+        # 그 전에 프로그램이 멈췄을 때 입력한 내용이 사라진다.
+        if self.save():
+            print("   저장했습니다.")
 
     def next_quiz_id(self):
         """다음에 쓸 퀴즈 번호를 정한다.
