@@ -441,8 +441,54 @@ class QuizGame:
         print("난이도 " + " · ".join(f"{name} {count}" for name, count in levels.items()))
         print(f"전 문항 정답 시 {sum(quiz.get_point() for quiz in self.quizzes)}점")
 
+    # ---------- 점수 확인 ----------
+
     def show_score(self):
-        print("\n🏆 점수 확인은 아직 준비 중입니다.")
+        """최고 점수와 점수 계산 방식을 보여준다."""
+        print()
+        print(LINE)
+        print("🏆 점수 확인")
+        print(LINE)
+
+        if self.best_score <= 0:
+            # 최고 점수가 0이면 아직 한 판도 마치지 않았다고 본다.
+            print("아직 퀴즈를 푼 기록이 없습니다.")
+            print("메뉴에서 '퀴즈 풀기'를 골라 도전해 보세요.")
+            print(LINE)
+            return
+
+        print(f"최고 점수: {self.best_score}점")
+
+        total = sum(quiz.get_point() for quiz in self.quizzes)
+        if total > 0:
+            achieved = self.best_score / total * 100
+            print(f"등록된 {len(self.quizzes)}문항을 전부 맞히면 {total}점 "
+                  f"(현재 {achieved:.1f}% 달성)")
+
+        print()
+        self.show_score_rule()
+        print(LINE)
+
+    def show_score_rule(self):
+        """점수가 어떻게 매겨지는지 설명한다.
+
+        연승전은 문제 수가 아니라 가중치 합계로 점수를 내기 때문에,
+        '몇 문제 맞혔는지'만으로는 점수를 짐작할 수 없다.
+        규칙을 config에서 그대로 읽어 오므로 설정을 바꾸면 설명도 함께 바뀐다.
+        """
+        print("점수 = 유형 기본점 × 난이도 배수 (힌트를 쓰면 절반, 내림)")
+
+        # 유형 이름은 Quiz 하위 클래스가 갖고 있으므로 표를 만들어 짝지어 준다.
+        labels = {"ox": "O/X", "choice": "선택형", "short": "주관식"}
+        types = " · ".join(
+            f"{labels[key]} {point}점" for key, point in config.TYPE_BASE_POINT.items()
+        )
+        levels = " · ".join(
+            f"{config.DIFFICULTY_LABEL[key]} ×{weight}"
+            for key, weight in config.DIFFICULTY_WEIGHT.items()
+        )
+        print(f"  유형   {types}")
+        print(f"  난이도 {levels}")
 
     def quit(self):
         """게임 루프를 멈춘다."""
