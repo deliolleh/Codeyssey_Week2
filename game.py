@@ -2,6 +2,7 @@
 
 import random
 
+import config
 from default_data import DEFAULT_BEST_SCORE, DEFAULT_QUIZZES
 from inputs import ask_int, ask_yes_no
 from quiz import create_quiz
@@ -23,12 +24,7 @@ MENU_ITEMS = [
     "종료",
 ]
 
-# 힌트 규칙
-# 한 판을 시작할 때 1개를 들고 시작하고, 정답을 5개 맞힐 때마다 1개씩 더 받는다.
-# 힌트를 쓰면 그 문제의 점수가 절반(내림)이 되므로, 1점짜리는 0점이 된다.
-# 점수를 포기하고 연승을 잇는 선택이 되도록 일부러 그렇게 뒀다.
-STARTING_HINTS = 1
-HINT_REWARD_STREAK = 5
+# 게임 규칙 값(힌트 개수, 점수 배수 등)은 config.py에 모여 있다.
 
 
 class QuizGame:
@@ -120,7 +116,7 @@ class QuizGame:
 
         score = 0
         streak = 0
-        hints_left = STARTING_HINTS
+        hints_left = config.STARTING_HINTS
 
         # 문제 수만큼만 돌면 되므로 for를 쓴다.
         for number, quiz in enumerate(self.quizzes, start=1):
@@ -144,7 +140,7 @@ class QuizGame:
 
             # 5연승마다 힌트를 하나씩 더 준다. 오답이면 게임이 끝나므로
             # 연승이 끊겨서 되돌려야 하는 경우는 없다.
-            if streak % HINT_REWARD_STREAK == 0:
+            if streak % config.HINT_REWARD_STREAK == 0:
                 hints_left += 1
                 print(f"🎁 {streak}연승 달성! 힌트 +1 (보유 {hints_left}개)")
         else:

@@ -15,10 +15,7 @@
     주관식      : answer는 허용 답안들을 담은 리스트.
 """
 
-# 선택지 개수의 허용 범위. 2개 미만은 문제가 성립하지 않고,
-# 너무 많으면 터미널 화면에서 한눈에 읽기 어렵다.
-MIN_CHOICES = 2
-MAX_CHOICES = 6
+import config
 
 
 def normalize(text):
@@ -42,14 +39,15 @@ class Quiz:
     TYPE_LABEL = "기본"
     BASE_POINT = 1
 
-    # 난이도 배수를 담은 딕셔너리(dict).
+    # 난이도 배수는 딕셔너리(dict)로 관리한다.
     # 리스트가 "순서로 꺼내는" 자료형이라면, 딕셔너리는 "이름표로 꺼내는" 자료형이다.
     # WEIGHT[2]가 아니라 WEIGHT["hard"]라고 쓸 수 있어서 코드가 읽힌다.
-    WEIGHT = {"easy": 1, "normal": 2, "hard": 3}
-    DIFFICULTY_LABEL = {"easy": "쉬움", "normal": "보통", "hard": "어려움"}
+    # 값 자체는 config.py에 있어 규칙을 바꿀 때 이 파일을 열 필요가 없다.
+    WEIGHT = config.DIFFICULTY_WEIGHT
+    DIFFICULTY_LABEL = config.DIFFICULTY_LABEL
 
     def __init__(self, question, choices, answer,
-                 difficulty="normal", hint="", explanation="", quiz_id=0):
+                 difficulty=config.DEFAULT_DIFFICULTY, hint="", explanation="", quiz_id=0):
         # --- 복구할 수 없는 오류는 여기서 막는다 ---
         # 문제 문장이 없으면 출제 자체가 불가능하다.
         # ValueError를 일으키면 이 퀴즈를 만들려던 쪽(Storage)이 받아서
@@ -62,9 +60,10 @@ class Quiz:
         # "어려움"이나 "Hard" 같은 값이 들어올 수 있다.
         # 여기서 한 번 걸러두면 이후 모든 코드는 difficulty가 정상이라고 믿어도 된다.
         if difficulty not in self.WEIGHT:
-            print(f"⚠️ 알 수 없는 난이도 '{difficulty}' → 'normal'로 처리합니다. "
+            print(f"⚠️ 알 수 없는 난이도 '{difficulty}' → "
+                  f"'{config.DEFAULT_DIFFICULTY}'로 처리합니다. "
                   f"(사용 가능: {', '.join(self.WEIGHT)})")
-            difficulty = "normal"
+            difficulty = config.DEFAULT_DIFFICULTY
 
         self.quiz_id = quiz_id
         self.question = str(question).strip()
@@ -86,7 +85,7 @@ class Quiz:
         """
         point = self.BASE_POINT * self.WEIGHT[self.difficulty]
         if used_hint:
-            return point // 2
+            return point // config.HINT_POINT_DIVISOR
         return point
 
     def difficulty_label(self):
@@ -165,16 +164,16 @@ class ChoiceQuiz(Quiz):
 
     TYPE = "choice"
     TYPE_LABEL = "선택형"
-    BASE_POINT = 2
+    BASE_POINT = config.TYPE_BASE_POINT["choice"]
 
     def __init__(self, question, choices, answer, **kwargs):
         super().__init__(question, choices, answer, **kwargs)
 
         # 선택지 개수와 정답 번호는 문제의 뼈대라, 잘못되면 출제할 수 없다.
         # 난이도와 달리 임의로 고쳐 쓸 수 없으므로 오류를 일으켜 건너뛰게 한다.
-        if not MIN_CHOICES <= len(self.choices) <= MAX_CHOICES:
+        if not config.MIN_CHOICES <= len(self.choices) <= config.MAX_CHOICES:
             raise ValueError(
-                f"선택지는 {MIN_CHOICES}~{MAX_CHOICES}개여야 합니다. "
+                f"선택지는 {config.MIN_CHOICES}~{config.MAX_CHOICES}개여야 합니다. "
                 f"(현재 {len(self.choices)}개)"
             )
         if not isinstance(self.answer, int) or not 1 <= self.answer <= len(self.choices):
@@ -216,7 +215,7 @@ class OXQuiz(Quiz):
 
     TYPE = "ox"
     TYPE_LABEL = "O/X"
-    BASE_POINT = 1
+    BASE_POINT = config.TYPE_BASE_POINT["ox"]
 
     def __init__(self, question, choices=None, answer=1, **kwargs):
         # O/X는 선택지가 항상 같으므로 값이 없거나 이상하면 채워 넣는다.
@@ -257,7 +256,7 @@ class ShortAnswerQuiz(Quiz):
 
     TYPE = "short"
     TYPE_LABEL = "주관식"
-    BASE_POINT = 3
+    BASE_POINT = config.TYPE_BASE_POINT["short"]
 
     def __init__(self, question, choices=None, answer=None, **kwargs):
         # 주관식은 고를 선택지가 없다.

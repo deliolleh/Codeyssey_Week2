@@ -17,8 +17,7 @@ Ctrl+C(KeyboardInterrupt)와 입력 종료(EOFError)는 여기서 잡지 않는�
 그대로 위로 올려보내 main.py가 한 번만 처리하고 안전하게 종료한다.
 """
 
-# 문제 문장이나 선택지가 지나치게 길면 화면이 깨지므로 상한을 둔다.
-MAX_TEXT_LENGTH = 200
+import config
 
 
 def ask_int(prompt, low, high):
@@ -83,8 +82,8 @@ def ask_text(prompt, allow_empty=False):
             print("⚠️ 입력이 비어 있습니다. 내용을 입력해 주세요.")
             continue
 
-        if len(raw) > MAX_TEXT_LENGTH:
-            print(f"⚠️ 너무 깁니다. {MAX_TEXT_LENGTH}자 이내로 입력해 주세요.")
+        if len(raw) > config.MAX_TEXT_LENGTH:
+            print(f"⚠️ 너무 깁니다. {config.MAX_TEXT_LENGTH}자 이내로 입력해 주세요.")
             continue
 
         return raw
