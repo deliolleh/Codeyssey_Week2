@@ -117,6 +117,7 @@ class QuizGame:
         score = 0
         streak = 0
         hints_left = config.STARTING_HINTS
+        hinted = []  # 힌트를 써서 맞힌 문제. 완주 후 복습용으로 모아 둔다.
 
         # 문제 수만큼만 돌면 되므로 for를 쓴다.
         for number, quiz in enumerate(self.quizzes, start=1):
@@ -129,12 +130,17 @@ class QuizGame:
 
             if not quiz.check(raw):
                 print(f"❌ 오답입니다. 정답은 '{quiz.answer_text()}'입니다.")
+                # 연승전은 오답이 곧 게임 종료라, 여기가 그 문제에 대해
+                # 무언가를 배울 수 있는 마지막 기회다. 그래서 해설을 붙인다.
+                quiz.show_explanation()
                 self.show_result(score, streak, cleared=False)
                 break
 
             point = quiz.get_point(used_hint)
             score += point
             streak += 1
+            if used_hint:
+                hinted.append(quiz)
             note = " · 힌트 사용" if used_hint else ""
             print(f"✅ 정답입니다! (+{point}점{note}) — 현재 {streak}연승, 총 {score}점")
 
@@ -149,6 +155,30 @@ class QuizGame:
             # if의 else와 뜻이 다르므로 헷갈리기 쉽지만, 종료 조건이 두 가지인
             # 연승전에서는 두 결말을 각자의 자리에 둘 수 있어 잘 맞는다.
             self.show_result(score, streak, cleared=True)
+
+        # break로 빠져나와도, else를 지나 끝나도 결국 이 줄로 온다.
+        # 덕분에 두 결말 모두에서 같은 복습 절차를 거치게 된다.
+        self.review_hinted(hinted)
+
+    def review_hinted(self, hinted):
+        """판이 끝났을 때, 힌트를 쓴 문제만 다시 짚어 준다.
+
+        전 문항 해설을 한 번에 쏟으면 50문항 기준 200줄이 넘어가 읽을 수가 없다.
+        힌트를 썼다는 것은 확신이 없었다는 뜻이므로 그 문제만 남긴다.
+        힌트를 한 번도 쓰지 않았다면 물어보지도 않는다.
+
+        틀린 문제의 해설은 그 자리에서 이미 보여줬으므로 여기에 포함하지 않는다.
+        """
+        if not hinted:
+            return
+        if not ask_yes_no(f"\n힌트를 사용한 {len(hinted)}문제의 해설을 볼까요? (y/n): "):
+            return
+
+        for number, quiz in enumerate(hinted, start=1):
+            print()
+            print(f"[{number}] {quiz.question}")
+            print(f"    정답: {quiz.answer_text()}")
+            quiz.show_explanation()
 
     def ask_answer(self, quiz, hints_left):
         """형식에 맞는 답이 들어올 때까지 되묻고, 그 입력을 돌려준다.
