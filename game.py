@@ -3,7 +3,7 @@
 import random
 
 from default_data import DEFAULT_BEST_SCORE, DEFAULT_QUIZZES
-from inputs import ask_int
+from inputs import ask_int, ask_yes_no
 from quiz import create_quiz
 
 # 화면에 반복해서 쓰이는 값은 상수로 빼둔다.
@@ -22,6 +22,13 @@ MENU_ITEMS = [
     "점수 확인",
     "종료",
 ]
+
+# 힌트 규칙
+# 한 판을 시작할 때 1개를 들고 시작하고, 정답을 5개 맞힐 때마다 1개씩 더 받는다.
+# 힌트를 쓰면 그 문제의 점수가 절반(내림)이 되므로, 1점짜리는 0점이 된다.
+# 점수를 포기하고 연승을 잇는 선택이 되도록 일부러 그렇게 뒀다.
+STARTING_HINTS = 1
+HINT_REWARD_STREAK = 5
 
 
 class QuizGame:
@@ -113,6 +120,7 @@ class QuizGame:
 
         score = 0
         streak = 0
+        hints_left = STARTING_HINTS
 
         # 문제 수만큼만 돌면 되므로 for를 쓴다.
         for number, quiz in enumerate(self.quizzes, start=1):
@@ -121,17 +129,24 @@ class QuizGame:
             quiz.display(number)
             print()
 
-            raw = self.ask_answer(quiz)
+            raw, used_hint, hints_left = self.ask_answer(quiz, hints_left)
 
             if not quiz.check(raw):
                 print(f"❌ 오답입니다. 정답은 '{quiz.answer_text()}'입니다.")
                 self.show_result(score, streak, cleared=False)
                 break
 
-            point = quiz.get_point()
+            point = quiz.get_point(used_hint)
             score += point
             streak += 1
-            print(f"✅ 정답입니다! (+{point}점) — 현재 {streak}연승, 총 {score}점")
+            note = " · 힌트 사용" if used_hint else ""
+            print(f"✅ 정답입니다! (+{point}점{note}) — 현재 {streak}연승, 총 {score}점")
+
+            # 5연승마다 힌트를 하나씩 더 준다. 오답이면 게임이 끝나므로
+            # 연승이 끊겨서 되돌려야 하는 경우는 없다.
+            if streak % HINT_REWARD_STREAK == 0:
+                hints_left += 1
+                print(f"🎁 {streak}연승 달성! 힌트 +1 (보유 {hints_left}개)")
         else:
             # for의 else는 break 없이 반복이 끝났을 때만 실행된다.
             # 여기서는 "한 문제도 틀리지 않고 전 문항을 통과했다"는 뜻이 된다.
@@ -139,18 +154,58 @@ class QuizGame:
             # 연승전에서는 두 결말을 각자의 자리에 둘 수 있어 잘 맞는다.
             self.show_result(score, streak, cleared=True)
 
-    def ask_answer(self, quiz):
+    def ask_answer(self, quiz, hints_left):
         """형식에 맞는 답이 들어올 때까지 되묻고, 그 입력을 돌려준다.
 
         형식 오류와 오답은 다르다. 형식이 틀렸다고 게임을 끝내면 억울하므로
         여기서는 판정하지 않고 형식만 확인한다.
         무엇이 올바른 형식인지는 문제 유형마다 다르므로 Quiz 객체에게 물어본다.
+
+        반환값이 세 개다. 힌트를 썼는지는 점수 계산에 필요하고,
+        남은 힌트 수는 다음 문제로 이어져야 하기 때문이다.
+            (입력한 답, 힌트를 썼는지, 남은 힌트 수)
         """
+        used_hint = False
         while True:
-            raw = input(quiz.prompt()).strip()
+            can_hint = hints_left > 0 and bool(quiz.hint) and not used_hint
+            guide = f" [h: 힌트 {hints_left}개]" if can_hint else ""
+            raw = input(f"{quiz.prompt()}{guide}: ").strip()
+
+            # 'h'는 힌트 요청으로 먼저 가로챈다.
+            # 이 검사를 건너뛰면 주관식에서 'h'가 답으로 처리돼
+            # 힌트를 보려다 오답으로 게임이 끝나 버린다.
+            if raw.lower() == "h":
+                if used_hint:
+                    print("⚠️ 이 문제의 힌트는 이미 봤습니다.")
+                elif not quiz.hint:
+                    print("⚠️ 이 문제에는 힌트가 없습니다.")
+                elif hints_left <= 0:
+                    print("⚠️ 남은 힌트가 없습니다.")
+                else:
+                    used_hint, hints_left = self.use_hint(quiz, hints_left)
+                continue
+
             if quiz.is_valid(raw):
-                return raw
+                return raw, used_hint, hints_left
             print(f"⚠️ {quiz.input_guide()}")
+
+    def use_hint(self, quiz, hints_left):
+        """힌트를 보여줄지 확인하고, 승낙하면 보여준 뒤 결과를 돌려준다.
+
+        점수가 얼마나 깎이는지 먼저 알려주고 묻는다.
+        1점짜리 문제는 0점이 되는데, 연승을 잇는 대가로 점수를 포기하는
+        선택이 되도록 의도한 것이다.
+        """
+        full = quiz.get_point()
+        reduced = quiz.get_point(used_hint=True)
+        print(f"⚠️ 힌트를 보면 이 문제는 {full}점 → {reduced}점이 되고, "
+              f"남은 힌트는 {hints_left - 1}개가 됩니다.")
+
+        if not ask_yes_no("계속할까요? (y/n): "):
+            return False, hints_left
+
+        print(f"💡 {quiz.hint}")
+        return True, hints_left - 1
 
     def show_result(self, score, streak, cleared):
         """한 판이 끝났을 때 결과를 보여주고 최고 점수를 갱신한다."""

@@ -101,8 +101,12 @@ class Quiz:
         print(self.question)
 
     def prompt(self):
-        """정답을 입력받을 때 보여줄 문구."""
-        return "정답 입력: "
+        """정답을 입력받을 때 보여줄 문구.
+
+        콜론은 붙이지 않는다. 부르는 쪽에서 "(h: 힌트)" 같은 안내를
+        뒤에 덧붙인 다음 콜론을 찍기 때문이다.
+        """
+        return "정답 입력"
 
     def input_guide(self):
         """입력이 형식에 맞지 않을 때 보여줄 안내 문구."""
@@ -187,7 +191,7 @@ class ChoiceQuiz(Quiz):
             print(f"  {index}. {choice}")
 
     def prompt(self):
-        return f"정답 입력 (1-{len(self.choices)}): "
+        return f"정답 입력 (1-{len(self.choices)})"
 
     def input_guide(self):
         return f"1-{len(self.choices)} 사이의 숫자를 입력하세요."
@@ -231,7 +235,7 @@ class OXQuiz(Quiz):
         super().display(number)
 
     def prompt(self):
-        return "정답 입력 (O/X): "
+        return "정답 입력 (O/X)"
 
     def input_guide(self):
         return "O 또는 X를 입력하세요."
@@ -271,7 +275,7 @@ class ShortAnswerQuiz(Quiz):
             raise ValueError("주관식 문제의 허용 답안이 모두 비어 있습니다.")
 
     def prompt(self):
-        return "정답 입력: "
+        return "정답 입력"
 
     def input_guide(self):
         return "정답을 입력해 주세요."
