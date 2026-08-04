@@ -4,7 +4,7 @@ import random
 
 import config
 from default_data import DEFAULT_BEST_SCORE, DEFAULT_QUIZZES
-from inputs import ask_int, ask_yes_no
+from inputs import ask_int, ask_text, ask_yes_no
 from quiz import create_quiz
 
 # 화면에 반복해서 쓰이는 값은 상수로 빼둔다.
@@ -289,8 +289,113 @@ class QuizGame:
             print(f"   최고 점수: {self.best_score}점")
         print(LINE)
 
+    # ---------- 퀴즈 추가 ----------
+
     def add_quiz(self):
-        print("\n📌 퀴즈 추가는 아직 준비 중입니다.")
+        """새 퀴즈를 입력받아 목록에 추가한다."""
+        print()
+        print(LINE)
+        print("📌 새로운 퀴즈를 추가합니다.")
+        print(LINE)
+
+        quiz_type = self.ask_quiz_type()
+        question = ask_text("\n문제를 입력하세요: ")
+        choices, answer = self.ask_choices_and_answer(quiz_type)
+        difficulty = self.ask_difficulty()
+
+        # 힌트와 해설은 없어도 되는 항목이라 빈 입력을 허용한다.
+        hint = ask_text("힌트 (없으면 Enter): ", allow_empty=True)
+        explanation = ask_text("해설 (없으면 Enter): ", allow_empty=True)
+
+        data = {
+            "id": self.next_quiz_id(),
+            "type": quiz_type,
+            "difficulty": difficulty,
+            "question": question,
+            "choices": choices,
+            "answer": answer,
+            "hint": hint,
+            "explanation": explanation,
+        }
+
+        # 입력을 하나하나 검증했더라도 Quiz 클래스의 규칙을 마지막으로 통과시킨다.
+        # 검증 기준이 두 군데로 갈라지지 않도록, 판단은 언제나 Quiz가 한다.
+        try:
+            quiz = create_quiz(data)
+        except ValueError as error:
+            print(f"\n⚠️ 퀴즈를 만들 수 없습니다: {error}")
+            return
+
+        self.quizzes.append(quiz)
+        print(f"\n✅ 퀴즈가 추가되었습니다! (총 {len(self.quizzes)}문항)")
+        print(f"   {quiz.TYPE_LABEL} · {quiz.difficulty_label()} · {quiz.get_point()}점 "
+              f"· 정답 '{quiz.answer_text()}'")
+
+    def next_quiz_id(self):
+        """다음에 쓸 퀴즈 번호를 정한다.
+
+        개수 + 1이 아니라 '가장 큰 번호 + 1'로 정한다.
+        중간의 퀴즈를 지운 뒤에도 이미 쓴 번호와 겹치지 않게 하기 위해서다.
+        """
+        if not self.quizzes:
+            return 1
+        return max(quiz.quiz_id for quiz in self.quizzes) + 1
+
+    def ask_quiz_type(self):
+        """어떤 유형의 문제를 만들지 고르게 한다."""
+        print("\n문제 유형을 고르세요.")
+        types = [
+            ("choice", "선택형 — 여러 선택지 중 하나를 고름"),
+            ("ox", "O/X — 맞다 틀리다로 답함"),
+            ("short", "주관식 — 답을 직접 입력함"),
+        ]
+        for number, (_, label) in enumerate(types, start=1):
+            print(f"  {number}. {label}")
+
+        picked = ask_int("유형 선택: ", 1, len(types))
+        return types[picked - 1][0]
+
+    def ask_choices_and_answer(self, quiz_type):
+        """유형에 따라 선택지와 정답을 입력받는다.
+
+        유형마다 물어볼 내용이 달라서 분기가 필요하다.
+        반환값의 모양은 셋 다 같게 맞춰 두어, 부르는 쪽은 신경 쓰지 않아도 된다.
+            (선택지 목록, 정답)
+        """
+        if quiz_type == "ox":
+            # O/X도 선택지를 갖는다. answer가 '선택지의 몇 번째'라는 규칙을
+            # 다른 유형과 똑같이 유지하기 위해서다. (O=1, X=2)
+            print("\n  1. O")
+            print("  2. X")
+            return ["O", "X"], ask_int("정답 선택 (1-2): ", 1, 2)
+
+        if quiz_type == "short":
+            # 표기가 여러 가지인 답이 많다. (무안 / 무안군)
+            # 띄어쓰기와 대소문자는 채점할 때 알아서 무시되므로 등록할 필요가 없다.
+            answers = [ask_text("정답을 입력하세요: ")]
+            while ask_yes_no("다른 표기도 정답으로 인정할까요? (y/n): "):
+                answers.append(ask_text(f"추가 정답 {len(answers) + 1}: "))
+            return [], answers
+
+        count = ask_int(
+            f"\n선택지 개수 ({config.MIN_CHOICES}-{config.MAX_CHOICES}): ",
+            config.MIN_CHOICES, config.MAX_CHOICES,
+        )
+        choices = []
+        for number in range(1, count + 1):
+            choices.append(ask_text(f"  선택지 {number}: "))
+        return choices, ask_int(f"정답 번호 (1-{count}): ", 1, count)
+
+    def ask_difficulty(self):
+        """난이도를 고르게 한다."""
+        print("\n난이도를 고르세요.")
+        levels = list(config.DIFFICULTY_WEIGHT)
+        for number, level in enumerate(levels, start=1):
+            print(f"  {number}. {config.DIFFICULTY_LABEL[level]} "
+                  f"(점수 {config.DIFFICULTY_WEIGHT[level]}배)")
+
+        picked = ask_int("난이도 선택: ", 1, len(levels))
+        return levels[picked - 1]
 
     def list_quizzes(self):
         print("\n📋 퀴즈 목록은 아직 준비 중입니다.")
