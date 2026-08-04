@@ -27,6 +27,7 @@ MENU_ITEMS = [
 # 게임 규칙 값(힌트 개수, 점수 배수 등)은 config.py에 모여 있다.
 
 
+
 class QuizGame:
     """메뉴를 보여주고, 사용자가 고른 기능을 실행하는 게임 본체."""
 
@@ -396,8 +397,49 @@ class QuizGame:
         picked = ask_int("난이도 선택: ", 1, len(levels))
         return levels[picked - 1]
 
+    # ---------- 퀴즈 목록 ----------
+
     def list_quizzes(self):
-        print("\n📋 퀴즈 목록은 아직 준비 중입니다.")
+        """등록된 퀴즈를 번호 순으로 훑어볼 수 있게 보여준다.
+
+        정답은 일부러 보여주지 않는다. 목록에서 답이 보이면
+        퀴즈를 풀 이유가 사라지기 때문이다.
+        """
+        if not self.quizzes:
+            print("\n⚠️ 등록된 퀴즈가 없습니다. 먼저 퀴즈를 추가해 주세요.")
+            return
+
+        print()
+        print(LINE)
+        print(f"📋 등록된 퀴즈 (총 {len(self.quizzes)}문항)")
+        print(LINE)
+
+        # 퀴즈 풀기가 목록을 제자리에서 섞기 때문에, 볼 때마다 순서가 달라진다.
+        # 번호 순으로 정렬해 보여줘야 어제 본 목록과 오늘 본 목록이 같아진다.
+        for quiz in sorted(self.quizzes, key=lambda q: q.quiz_id):
+            # 칸을 맞추지 않고 · 로 구분한다. 공백으로 채워 정렬하면
+            # 한글을 영문의 두 배 폭으로 그리지 않는 폰트에서 줄이 어긋난다.
+            # 문제 문장도 자르지 않는다. 정렬을 하지 않으니 줄이 넘어가도
+            # 다음 줄과 어긋날 일이 없고, 잘라 놓으면 무엇을 묻는지 알 수 없다.
+            print(f"[{quiz.quiz_id:>3}] {quiz.TYPE_LABEL} · {quiz.difficulty_label()} · "
+                  f"{quiz.get_point()}점 · {quiz.question}")
+
+        print(LINE)
+        self.show_quiz_summary()
+
+    def show_quiz_summary(self):
+        """유형과 난이도가 어떻게 분포돼 있는지 한 줄로 요약한다."""
+        types = {}
+        levels = {}
+        for quiz in self.quizzes:
+            # dict.get(키, 기본값)은 키가 없을 때 기본값을 돌려준다.
+            # 덕분에 "처음 보는 유형인가"를 따로 확인하지 않아도 된다.
+            types[quiz.TYPE_LABEL] = types.get(quiz.TYPE_LABEL, 0) + 1
+            levels[quiz.difficulty_label()] = levels.get(quiz.difficulty_label(), 0) + 1
+
+        print("유형   " + " · ".join(f"{name} {count}" for name, count in types.items()))
+        print("난이도 " + " · ".join(f"{name} {count}" for name, count in levels.items()))
+        print(f"전 문항 정답 시 {sum(quiz.get_point() for quiz in self.quizzes)}점")
 
     def show_score(self):
         print("\n🏆 점수 확인은 아직 준비 중입니다.")
