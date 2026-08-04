@@ -126,14 +126,19 @@ class QuizGame:
             quiz.display(number)
             print()
 
-            raw, used_hint, hints_left = self.ask_answer(quiz, hints_left)
+            answer = self.ask_answer_or_quit(quiz, hints_left, number)
+            if answer is None:
+                # 그만두기를 선택했다. 지금까지 쌓은 점수와 연승은 그대로 살린다.
+                self.show_result(score, streak, ending="gave_up")
+                break
+            raw, used_hint, hints_left = answer
 
             if not quiz.check(raw):
                 print(f"❌ 오답입니다. 정답은 '{quiz.answer_text()}'입니다.")
                 # 연승전은 오답이 곧 게임 종료라, 여기가 그 문제에 대해
                 # 무언가를 배울 수 있는 마지막 기회다. 그래서 해설을 붙인다.
                 quiz.show_explanation()
-                self.show_result(score, streak, cleared=False)
+                self.show_result(score, streak, ending="wrong")
                 break
 
             point = quiz.get_point(used_hint)
@@ -154,7 +159,7 @@ class QuizGame:
             # 여기서는 "한 문제도 틀리지 않고 전 문항을 통과했다"는 뜻이 된다.
             # if의 else와 뜻이 다르므로 헷갈리기 쉽지만, 종료 조건이 두 가지인
             # 연승전에서는 두 결말을 각자의 자리에 둘 수 있어 잘 맞는다.
-            self.show_result(score, streak, cleared=True)
+            self.show_result(score, streak, ending="cleared")
 
         # break로 빠져나와도, else를 지나 끝나도 결국 이 줄로 온다.
         # 덕분에 두 결말 모두에서 같은 복습 절차를 거치게 된다.
@@ -179,6 +184,32 @@ class QuizGame:
             print(f"[{number}] {quiz.question}")
             print(f"    정답: {quiz.answer_text()}")
             quiz.show_explanation()
+
+    def ask_answer_or_quit(self, quiz, hints_left, number):
+        """답을 받되, 진행 중에 Ctrl+C가 오면 그만둘지 물어본다.
+
+        여기서 잡지 않으면 예외가 main까지 올라가면서 판이 통째로 사라지고,
+        쌓아 둔 연승과 점수도 함께 날아간다. 진행 상황을 알고 있는 곳이
+        play()뿐이라, 기록을 살리려면 이 층에서 받아야 한다.
+
+        반환: (답, 힌트 사용 여부, 남은 힌트) 또는 그만두기를 고르면 None
+
+        확인하는 도중에 다시 Ctrl+C가 오거나 입력이 끊기면 그대로 위로 올려보낸다.
+        그만두겠다는 신호를 두 번 보냈으면 붙잡지 않는 것이 맞고,
+        입력 스트림이 끝난 경우에는 되물어도 답을 받을 수 없기 때문이다.
+        """
+        while True:
+            try:
+                return self.ask_answer(quiz, hints_left)
+            except KeyboardInterrupt:
+                print()
+                if ask_yes_no("⚠️ 지금까지 기록을 남기고 그만둘까요? (y/n): "):
+                    return None
+                # 화면이 안내 문구로 밀려났으므로 문제를 다시 띄워 준다.
+                print("계속합니다.")
+                print()
+                quiz.display(number)
+                print()
 
     def ask_answer(self, quiz, hints_left):
         """형식에 맞는 답이 들어올 때까지 되묻고, 그 입력을 돌려준다.
@@ -233,12 +264,20 @@ class QuizGame:
         print(f"💡 {quiz.hint}")
         return True, hints_left - 1
 
-    def show_result(self, score, streak, cleared):
-        """한 판이 끝났을 때 결과를 보여주고 최고 점수를 갱신한다."""
+    def show_result(self, score, streak, ending):
+        """한 판이 끝났을 때 결과를 보여주고 최고 점수를 갱신한다.
+
+        끝나는 방식이 세 가지라 참/거짓 대신 이름을 받는다.
+            cleared  : 등록된 문제를 모두 맞힘
+            wrong    : 틀려서 멈춤
+            gave_up  : 진행 중에 그만둠
+        """
         print()
         print(LINE)
-        if cleared:
+        if ending == "cleared":
             print(f"🎉 등록된 {streak}문제를 모두 맞혔습니다!")
+        elif ending == "gave_up":
+            print(f"🚪 중단했습니다 — {streak}연승까지 기록됩니다.")
         else:
             print(f"💀 Game Over — {streak}연승에서 멈췄습니다.")
         print(f"🏆 획득 점수: {score}점")
