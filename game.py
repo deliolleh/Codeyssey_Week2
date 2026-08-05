@@ -11,10 +11,8 @@ from user import User
 
 # 화면에 반복해서 쓰이는 값은 상수로 빼둔다.
 # 값이 한 군데에만 있으면 디자인을 바꿀 때 한 줄만 고치면 된다.
-LINE_WIDTH = 44
-LINE = "=" * LINE_WIDTH  # 화면을 크게 나누는 줄
-SUB_LINE = "-" * LINE_WIDTH  # 문제와 문제 사이를 나누는 줄
-TITLE = "🗺️  대한민국 지역 퀴즈 게임  🗺️"
+LINE = "=" * config.LINE_WIDTH  # 화면을 크게 나누는 줄
+SUB_LINE = "-" * config.LINE_WIDTH  # 문제와 문제 사이를 나누는 줄
 
 
 # 메뉴 항목은 리스트(list)로 관리한다.
@@ -62,7 +60,7 @@ class QuizGame:
         """메인 메뉴를 출력한다."""
         print()
         print(LINE)
-        print(f"       {TITLE}")
+        print(f"       {config.TITLE}")
         print(LINE)
         # for는 반복 횟수가 이미 정해져 있을 때 쓴다.
         # 여기서는 "리스트에 든 항목 수"만큼만 돌면 되므로 for가 맞다.
@@ -588,11 +586,17 @@ class QuizGame:
         print(LINE)
 
     def show_ranking(self, played):
-        """닉네임별 최고 기록을 점수가 높은 순으로 보여준다."""
+        """점수가 높은 순으로 상위 몇 명만 보여준다.
+
+        사용자가 늘어도 화면이 길어지지 않도록 인원을 끊는다.
+        """
+        ranked = sorted(played, key=lambda u: u.best_score, reverse=True)
+        top = ranked[:config.TOP_RANKING_COUNT]
+
         print()
-        print("닉네임별 최고 기록")
-        for user in sorted(played, key=lambda u: u.best_score, reverse=True):
-            print(f"   {user.nickname} · {user.best_score}점 · {user.play_count()}판")
+        print(f"점수 상위 {len(top)}명" + (f" (전체 {len(ranked)}명)" if len(ranked) > len(top) else ""))
+        for rank, user in enumerate(top, start=1):
+            print(f"   {rank}위  {user.nickname} · {user.best_score}점 · {user.play_count()}판")
 
     def show_recent_records(self, played):
         """모든 사용자의 기록을 합쳐 최근 것부터 보여준다.

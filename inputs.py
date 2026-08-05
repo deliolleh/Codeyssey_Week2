@@ -17,6 +17,8 @@ Ctrl+C(KeyboardInterrupt)와 입력 종료(EOFError)는 여기서 잡지 않는�
 그대로 위로 올려보내 main.py가 한 번만 처리하고 안전하게 종료한다.
 """
 
+import unicodedata
+
 import config
 
 
@@ -73,7 +75,10 @@ def ask_text(prompt, allow_empty=False):
         ask_text("힌트 (없으면 Enter): ", allow_empty=True) -> 비면 "" 을 반환
     """
     while True:
-        raw = input(prompt).strip()
+        # 한글은 NFC와 NFD 두 방식으로 저장될 수 있어, 겉보기가 같아도
+        # 다른 문자열이 된다. 붙여넣기로 NFD가 들어올 수 있으므로
+        # 받는 자리에서 한 방식으로 모아 둔다.
+        raw = unicodedata.normalize("NFC", input(prompt)).strip()
 
         if not raw:
             if allow_empty:

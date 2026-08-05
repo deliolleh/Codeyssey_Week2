@@ -12,6 +12,7 @@ Quiz가 '문제 하나'를 맡듯 User는 '사람 하나'를 맡는다.
 화면·코드·저장 파일이 모두 같은 단어를 쓰도록 맞췄다.
 """
 
+import unicodedata
 from datetime import datetime
 
 import config
@@ -24,7 +25,9 @@ class User:
         # 닉네임은 사용자를 구분하는 기준이므로 앞뒤 공백을 없애 통일한다.
         # " 재혁 "과 "재혁"이 다른 사람으로 취급되면 기록이 갈라진다.
         # 실명일 필요가 없어 '이름'이 아니라 '닉네임'이라고 부른다.
-        self.nickname = str(nickname).strip()
+        # 한글은 NFC와 NFD 두 방식으로 저장될 수 있어 겉보기가 같아도
+        # 다른 문자열이 된다. 한쪽으로 모아야 같은 사람으로 인식된다.
+        self.nickname = unicodedata.normalize("NFC", str(nickname)).strip()
         if not self.nickname:
             raise ValueError("닉네임이 비어 있습니다.")
 
