@@ -41,6 +41,7 @@ MENU_ITEMS = [
     "퀴즈 풀기 (연승전)",
     "퀴즈 추가",
     "퀴즈 목록",
+    "퀴즈 삭제",
     "점수 확인",
     "종료",
 ]
@@ -105,8 +106,10 @@ class QuizGame:
             elif choice == 3:
                 self.list_quizzes()
             elif choice == 4:
-                self.show_score()
+                self.delete_quiz()
             elif choice == 5:
+                self.show_score()
+            elif choice == 6:
                 self.quit()
 
     # ---------- 각 기능 (이후 커밋에서 구현) ----------
@@ -543,6 +546,52 @@ class QuizGame:
         print("유형   " + " · ".join(f"{name} {count}" for name, count in types.items()))
         print("난이도 " + " · ".join(f"{name} {count}" for name, count in levels.items()))
         print(f"전 문항 정답 시 {sum(quiz.get_point() for quiz in self.quizzes)}점")
+
+    # ---------- 퀴즈 삭제 ----------
+
+    def delete_quiz(self):
+        """번호로 퀴즈를 골라 삭제한다."""
+        if not self.quizzes:
+            print("\n⚠️ 등록된 퀴즈가 없습니다.")
+            return
+
+        self.list_quizzes()
+        quiz = self.ask_quiz_by_id("삭제할 퀴즈 번호: ")
+
+        # 되돌릴 수 없는 작업이라, 어떤 문제인지 보여주고 한 번 확인받는다.
+        print()
+        print(f"[{quiz.quiz_id}] {quiz.question}")
+        print(f"     정답: {quiz.answer_text()}")
+        if not ask_yes_no("정말 삭제할까요? 되돌릴 수 없습니다. (y/n): "):
+            print("취소했습니다.")
+            return
+
+        self.quizzes.remove(quiz)
+        print(f"\n🗑️  삭제했습니다. (남은 {len(self.quizzes)}문항)")
+        if self.save():
+            print("   저장했습니다.")
+
+    def find_quiz(self, quiz_id):
+        """번호가 같은 퀴즈를 찾는다. 없으면 None."""
+        for quiz in self.quizzes:
+            if quiz.quiz_id == quiz_id:
+                return quiz
+        return None
+
+    def ask_quiz_by_id(self, prompt):
+        """실제로 있는 퀴즈 번호를 입력할 때까지 되묻고, 그 퀴즈를 돌려준다.
+
+        번호는 삭제를 반복하면 1, 5, 12처럼 띄엄띄엄해진다.
+        그래서 ask_int의 범위 검사만으로는 부족하고,
+        그 번호의 퀴즈가 실제로 있는지 한 번 더 확인해야 한다.
+        """
+        numbers = sorted(quiz.quiz_id for quiz in self.quizzes)
+        while True:
+            picked = ask_int(prompt, numbers[0], numbers[-1])
+            quiz = self.find_quiz(picked)
+            if quiz is not None:
+                return quiz
+            print(f"⚠️ {picked}번 퀴즈가 없습니다. 목록에 있는 번호를 입력하세요.")
 
     # ---------- 점수 확인 ----------
 
