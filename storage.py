@@ -19,7 +19,7 @@ try/except로 감싸고, 문제가 있으면 기본 퀴즈로 되돌린다.
 import json
 from pathlib import Path
 
-from default_data import DEFAULT_BEST_SCORE, DEFAULT_QUIZZES
+from default_data import DEFAULT_QUIZZES
 from quiz import create_quiz
 from user import create_user
 
@@ -45,9 +45,12 @@ class Storage:
     def load(self):
         """저장된 자료를 읽어 딕셔너리로 돌려준다.
 
-        돌려주는 항목이 여럿이라 순서대로 나열하면 부르는 쪽에서 헷갈리기 쉽다.
         이름표로 꺼내 쓸 수 있게 딕셔너리로 묶고, JSON의 키 이름과 맞춰 두었다.
-            quizzes / best_score / users
+            quizzes / users
+
+        best_score는 읽지 않는다. 사용자 기록에서 계산할 수 있는 값이라
+        저장할 때만 쓰고 불러올 때는 무시한다. 파일을 손으로 고쳐
+        엉뚱한 값을 넣어도 화면에 반영되지 않는다.
 
         파일이 없거나 망가졌으면 기본 퀴즈로 되돌린다.
         어떤 경우에도 예외를 밖으로 내보내지 않는다.
@@ -75,15 +78,14 @@ class Storage:
             return self.recover()
 
         quizzes = self.read_quizzes(data)
-        best_score = self.read_best_score(data)
         users = self.read_users(data)
 
-        summary = f"퀴즈 {len(quizzes)}개, 최고 점수 {best_score}점"
+        summary = f"퀴즈 {len(quizzes)}개"
         if users:
             summary += f", 사용자 {len(users)}명"
         print(f"📂 저장된 데이터를 불러왔습니다. ({summary})")
 
-        return {"quizzes": quizzes, "best_score": best_score, "users": users}
+        return {"quizzes": quizzes, "users": users}
 
     def read_quizzes(self, data):
         """자료에서 퀴즈 목록을 꺼낸다. 쓸 만한 게 없으면 기본 퀴즈로 채운다."""
@@ -97,16 +99,6 @@ class Storage:
             print("⚠️ 사용할 수 있는 퀴즈가 하나도 없어 기본 퀴즈로 채웁니다.")
             return self.build_quizzes(DEFAULT_QUIZZES)
         return quizzes
-
-    def read_best_score(self, data):
-        """자료에서 최고 점수를 꺼낸다. 값이 이상하면 0으로 되돌린다."""
-        best_score = data.get("best_score", DEFAULT_BEST_SCORE)
-        # bool은 파이썬에서 int의 한 종류라 isinstance(True, int)가 참이 된다.
-        # true가 점수로 들어오는 것을 막으려면 따로 걸러야 한다.
-        if isinstance(best_score, bool) or not isinstance(best_score, int) or best_score < 0:
-            print(f"⚠️ 최고 점수 값이 올바르지 않아 {DEFAULT_BEST_SCORE}으로 되돌립니다.")
-            return DEFAULT_BEST_SCORE
-        return best_score
 
     def read_users(self, data):
         """자료에서 사용자 목록을 꺼낸다.
@@ -160,11 +152,7 @@ class Storage:
         """읽기에 실패했거나 파일이 없을 때 기본 상태를 돌려준다."""
         if not quiet:
             print("   기본 퀴즈로 복구합니다. 저장하면 기존 파일을 덮어씁니다.")
-        return {
-            "quizzes": self.build_quizzes(DEFAULT_QUIZZES),
-            "best_score": DEFAULT_BEST_SCORE,
-            "users": [],
-        }
+        return {"quizzes": self.build_quizzes(DEFAULT_QUIZZES), "users": []}
 
     # ---------- 저장하기 ----------
 
@@ -176,6 +164,8 @@ class Storage:
             # 이렇게 해두면 사람이 파일을 열어볼 때 순서가 늘 같고,
             # 점수만 바뀐 경우에 파일 전체가 뒤바뀌는 일도 없다.
             "quizzes": [quiz.to_dict() for quiz in sorted(quizzes, key=lambda q: q.quiz_id)],
+            # users의 최고 점수 중 최댓값을 계산해 받은 값이다.
+            # 과제 스키마와의 호환을 위해 별도 키로 두지만, 따로 관리하지 않는다.
             "best_score": best_score,
             # 기록이 하나도 없는 닉네임은 저장하지 않는다.
             # 오타로 잘못 친 닉네임까지 파일에 쌓이는 것을 막는다.

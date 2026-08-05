@@ -46,9 +46,19 @@ class QuizGame:
         self.storage = storage or Storage()
         state = self.storage.load()
         self.quizzes = state["quizzes"]  # list: Quiz 객체들
-        self.best_score = state["best_score"]  # int: 전체 최고 점수
         self.users = state["users"]  # list: User 객체들
         self.running = True  # bool: 게임 루프를 계속 돌릴지 여부
+
+    @property
+    def best_score(self):
+        """전체 최고 점수.
+
+        따로 들고 있지 않고 사용자 기록에서 그때그때 계산한다.
+        같은 사실을 두 군데에 적어 두면 한쪽만 바뀌었을 때 어긋난다.
+        예를 들어 state.json에서 users를 지우면 화면은 "기록 없음"이라 하는데
+        파일에는 best_score가 남아 서로 다른 말을 하게 된다.
+        """
+        return max((user.best_score for user in self.users), default=0)
 
     def save(self):
         """지금 상태를 파일에 저장한다."""
@@ -222,11 +232,10 @@ class QuizGame:
         if not game.is_recordable():
             return False
 
+        # 개인 최고 점수만 갱신하면 전체 최고 점수는 계산으로 따라온다.
         renewed = game.player.add_record(
             game.score, game.streak, game.total, game.hints_used, game.ending.value
         )
-        if game.score > self.best_score:
-            self.best_score = game.score
         self.save()
         return renewed
 
