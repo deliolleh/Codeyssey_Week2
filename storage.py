@@ -188,12 +188,27 @@ class Storage:
             ],
         }
 
+        # 곧바로 state.json에 쓰지 않고 임시 파일에 먼저 쓴다.
+        # 쓰는 도중에 프로그램이 멈추면 파일이 반쯤 쓰인 상태로 남는데,
+        # 그러면 다음 실행 때 손상 파일로 판정돼 그동안의 기록이 통째로 날아간다.
+        # 임시 파일에 다 쓴 뒤 이름만 바꾸면, 원본은 끝까지 온전한 상태로 남는다.
+        temp_path = self.path.with_name(self.path.name + ".tmp")
+
         try:
-            with open(self.path, "w", encoding="utf-8") as file:
+            with open(temp_path, "w", encoding="utf-8") as file:
                 # ensure_ascii=False 를 빼면 한글이 \uXXXX 로 저장돼 사람이 읽을 수 없다.
                 # indent=2 는 줄바꿈과 들여쓰기를 넣어 보기 좋게 만든다.
                 json.dump(data, file, ensure_ascii=False, indent=2)
+
+            # replace는 이름 바꾸기 한 번으로 끝나는 작업이라
+            # 중간 상태가 없다. 성공하면 새 파일, 실패하면 옛 파일이 남는다.
+            temp_path.replace(self.path)
             return True
         except OSError as error:
             print(f"⚠️ 저장하지 못했습니다. ({error})")
+            # 실패해서 남은 임시 파일은 치운다. 이것마저 실패하면 그냥 넘어간다.
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
             return False

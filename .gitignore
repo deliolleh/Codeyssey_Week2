@@ -7,6 +7,9 @@ venv/
 # 로컬 버전 관리 도구 설정 (필요 버전은 README와 main.py의 검사로 명시)
 .python-version
 
+# 저장 중 사고로 남을 수 있는 임시 파일
+*.json.tmp
+
 # macOS
 .DS_Store
 
