@@ -7,6 +7,7 @@ import config
 from inputs import ask_int, ask_text, ask_yes_no
 from quiz import QUIZ_TYPES, create_quiz
 from storage import Storage
+from user import User
 
 # 화면에 반복해서 쓰이는 값은 상수로 빼둔다.
 # 값이 한 군데에만 있으면 디자인을 바꿀 때 한 줄만 고치면 된다.
@@ -131,10 +132,15 @@ class QuizGame:
         print("   한 문제라도 틀리면 그 자리에서 끝납니다.")
         print(LINE)
 
+        player = self.ask_player()
+
         score = 0
         streak = 0
+        answered = 0  # 실제로 답을 제출한 문제 수
+        hints_used = 0  # 맞혔든 틀렸든 힌트를 본 횟수
         hints_left = config.STARTING_HINTS
-        hinted = []  # 힌트를 써서 맞힌 문제. 완주 후 복습용으로 모아 둔다.
+        hinted = []  # 힌트를 써서 맞힌 문제. 판이 끝난 뒤 복습용으로 모아 둔다.
+        ending = None  # 어떻게 끝났는지. 아래 세 갈래에서 정해진다.
 
         # 문제 수만큼만 돌면 되므로 for를 쓴다.
         for number, quiz in enumerate(self.quizzes, start=1):
@@ -146,16 +152,20 @@ class QuizGame:
             answer = self.ask_answer_or_quit(quiz, hints_left, number)
             if answer is None:
                 # 그만두기를 선택했다. 지금까지 쌓은 점수와 연승은 그대로 살린다.
-                self.show_result(score, streak, Ending.GAVE_UP)
+                ending = Ending.GAVE_UP
                 break
             raw, used_hint, hints_left = answer
+
+            answered += 1
+            if used_hint:
+                hints_used += 1
 
             if not quiz.check(raw):
                 print(f"❌ 오답입니다. 정답은 '{quiz.answer_text()}'입니다.")
                 # 연승전은 오답이 곧 게임 종료라, 여기가 그 문제에 대해
                 # 무언가를 배울 수 있는 마지막 기회다. 그래서 해설을 붙인다.
                 quiz.show_explanation()
-                self.show_result(score, streak, Ending.WRONG)
+                ending = Ending.WRONG
                 break
 
             point = quiz.get_point(used_hint)
@@ -174,13 +184,65 @@ class QuizGame:
         else:
             # for의 else는 break 없이 반복이 끝났을 때만 실행된다.
             # 여기서는 "한 문제도 틀리지 않고 전 문항을 통과했다"는 뜻이 된다.
-            # if의 else와 뜻이 다르므로 헷갈리기 쉽지만, 종료 조건이 두 가지인
-            # 연승전에서는 두 결말을 각자의 자리에 둘 수 있어 잘 맞는다.
-            self.show_result(score, streak, Ending.CLEARED)
+            # if의 else와 뜻이 다르므로 헷갈리기 쉽지만, 종료 조건이 세 가지인
+            # 연승전에서는 각 결말을 자기 자리에 둘 수 있어 잘 맞는다.
+            ending = Ending.CLEARED
 
         # break로 빠져나와도, else를 지나 끝나도 결국 이 줄로 온다.
-        # 덕분에 두 결말 모두에서 같은 복습 절차를 거치게 된다.
+        # 기록을 먼저 남겨야 갱신 여부를 알 수 있고, 그래야 결과 화면에
+        # "새 최고 기록"을 함께 찍을 수 있다.
+        renewed = self.record_result(player, score, streak, answered, hints_used, ending)
+        self.show_result(player, score, streak, ending, renewed)
         self.review_hinted(hinted)
+
+    # ---------- 사용자 ----------
+
+    def find_user(self, nickname):
+        """닉네임이 같은 사용자를 찾는다. 없으면 None.
+
+        대소문자는 구분하지 않는다. 'Kim'과 'kim'을 다른 사람으로 보면
+        오타 한 번에 기록이 둘로 갈라진다.
+        """
+        key = nickname.strip().lower()
+        for user in self.users:
+            if user.nickname.lower() == key:
+                return user
+        return None
+
+    def ask_player(self):
+        """이번 판의 기록을 누구 앞으로 남길지 정한다.
+
+        마지막에 게임한 사람을 기본값으로 두면, 다음 사람이 무심코 Enter를
+        눌렀을 때 남의 기록에 자기 점수가 섞인다. 그래서 기본값은 공용
+        익명 계정이다. 잘못 눌러도 누구의 기록도 오염되지 않는다.
+        """
+        raw = ask_text(f"닉네임 (Enter: {config.ANONYMOUS_NICKNAME}): ", allow_empty=True)
+        nickname = raw or config.ANONYMOUS_NICKNAME
+
+        user = self.find_user(nickname)
+        if user is None:
+            user = User(nickname)
+            self.users.append(user)
+            print(f"✨ {user.nickname}님, 반갑습니다. 새 닉네임으로 등록했습니다.")
+        else:
+            print(f"👋 {user.nickname}님 "
+                  f"(최고 {user.best_score}점 · {user.play_count()}판)")
+        return user
+
+    def record_result(self, player, score, streak, answered, hints_used, ending):
+        """판 결과를 기록으로 남기고, 개인 최고 기록을 갱신했는지 돌려준다."""
+        # 한 문제도 답하지 않고 나간 판은 기록하지 않는다.
+        # 시작하자마자 그만둔 것까지 쌓이면 "총 12판" 같은 숫자가 의미를 잃는다.
+        if answered == 0:
+            return False
+
+        renewed = player.add_record(
+            score, streak, len(self.quizzes), hints_used, ending.value
+        )
+        if score > self.best_score:
+            self.best_score = score
+        self.save()
+        return renewed
 
     def review_hinted(self, hinted):
         """판이 끝났을 때, 힌트를 쓴 문제만 다시 짚어 준다.
@@ -281,11 +343,12 @@ class QuizGame:
         print(f"💡 {quiz.hint}")
         return True, hints_left - 1
 
-    def show_result(self, score, streak, ending):
-        """한 판이 끝났을 때 결과를 보여주고 최고 점수를 갱신한다.
+    def show_result(self, player, score, streak, ending, renewed):
+        """한 판이 끝났을 때 결과를 보여준다.
 
         ending은 Ending 중 하나다. 끝나는 방식이 세 가지라
         참/거짓 두 갈래로는 담을 수 없다.
+        renewed는 이 판으로 개인 최고 기록을 갈아치웠는지 여부다.
         """
         print()
         print(LINE)
@@ -295,14 +358,13 @@ class QuizGame:
             print(f"🚪 중단했습니다 — {streak}연승까지 기록됩니다.")
         else:
             print(f"💀 Game Over — {streak}연승에서 멈췄습니다.")
-        print(f"🏆 획득 점수: {score}점")
 
-        if score > self.best_score:
-            print(f"🎉 새로운 최고 점수입니다! (이전 {self.best_score}점)")
-            self.best_score = score
-            self.save()
+        print(f"🏆 {player.nickname}님 획득 점수: {score}점")
+        if renewed:
+            print(f"🎉 {player.nickname}님의 새 최고 기록입니다!")
         else:
-            print(f"   최고 점수: {self.best_score}점")
+            print(f"   {player.nickname}님 최고 {player.best_score}점 "
+                  f"· 전체 최고 {self.best_score}점")
         print(LINE)
 
     # ---------- 퀴즈 추가 ----------
@@ -470,14 +532,14 @@ class QuizGame:
         print("🏆 점수 확인")
         print(LINE)
 
-        if self.best_score <= 0:
-            # 최고 점수가 0이면 아직 한 판도 마치지 않았다고 본다.
+        played = [user for user in self.users if user.history]
+        if not played:
             print("아직 퀴즈를 푼 기록이 없습니다.")
             print("메뉴에서 '퀴즈 풀기'를 골라 도전해 보세요.")
             print(LINE)
             return
 
-        print(f"최고 점수: {self.best_score}점")
+        print(f"전체 최고 점수: {self.best_score}점")
 
         total = sum(quiz.get_point() for quiz in self.quizzes)
         if total > 0:
@@ -485,9 +547,43 @@ class QuizGame:
             print(f"등록된 {len(self.quizzes)}문항을 전부 맞히면 {total}점 "
                   f"(현재 {achieved:.1f}% 달성)")
 
+        self.show_ranking(played)
+        self.show_recent_records(played)
+
         print()
         self.show_score_rule()
         print(LINE)
+
+    def show_ranking(self, played):
+        """닉네임별 최고 기록을 점수가 높은 순으로 보여준다."""
+        print()
+        print("닉네임별 최고 기록")
+        for user in sorted(played, key=lambda u: u.best_score, reverse=True):
+            print(f"   {user.nickname} · {user.best_score}점 · {user.play_count()}판")
+
+    def show_recent_records(self, played):
+        """모든 사용자의 기록을 합쳐 최근 것부터 보여준다.
+
+        사람마다 따로 보여주면 "누가 마지막에 했는지"를 알 수 없다.
+        한 줄로 합쳐 놓으면 최근 흐름이 한눈에 들어온다.
+        """
+        records = []
+        for user in played:
+            for record in user.history:
+                records.append((record, user))
+
+        # 기록한 시각 문자열이 "2026-08-05 11:56:31" 형태라
+        # 글자 순서대로 정렬하면 시간 순서와 같아진다.
+        records.sort(key=lambda pair: pair[0]["played_at"], reverse=True)
+
+        print()
+        print("최근 기록")
+        for record, user in records[:config.RECENT_HISTORY_COUNT]:
+            when = record["played_at"][5:16]  # 월-일 시:분 만 남긴다
+            ending = config.ENDING_LABEL.get(record["ending"], record["ending"])
+            print(f"   {when}  {user.nickname} · {record['score']}점 · "
+                  f"{record['streak']}연승/{record['total']}문제 · "
+                  f"힌트 {record['hints_used']}회 · {ending}")
 
     def show_score_rule(self):
         """점수가 어떻게 매겨지는지 설명한다.

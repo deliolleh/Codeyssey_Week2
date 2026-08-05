@@ -177,10 +177,14 @@ class Storage:
             # 점수만 바뀐 경우에 파일 전체가 뒤바뀌는 일도 없다.
             "quizzes": [quiz.to_dict() for quiz in sorted(quizzes, key=lambda q: q.quiz_id)],
             "best_score": best_score,
+            # 기록이 하나도 없는 닉네임은 저장하지 않는다.
+            # 오타로 잘못 친 닉네임까지 파일에 쌓이는 것을 막는다.
             # 사용자도 닉네임 순으로 정렬해 둔다. 접속 순서대로 쌓이면
             # 새로 접속할 때마다 파일에서 위치가 바뀌어 변경 내역이 지저분해진다.
             "users": [
-                user.to_dict() for user in sorted(users, key=lambda u: u.nickname.lower())
+                user.to_dict()
+                for user in sorted(users, key=lambda u: u.nickname.lower())
+                if user.history
             ],
         }
 
