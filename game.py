@@ -1,11 +1,11 @@
 """게임 전체 흐름을 관리하는 QuizGame 클래스."""
 
 import random
-from enum import Enum
 
 import config
 from inputs import ask_int, ask_text, ask_yes_no
 from quiz import QUIZ_TYPES, create_quiz
+from session import Ending, Round
 from storage import Storage
 from user import User
 
@@ -16,22 +16,6 @@ LINE = "=" * LINE_WIDTH  # 화면을 크게 나누는 줄
 SUB_LINE = "-" * LINE_WIDTH  # 문제와 문제 사이를 나누는 줄
 TITLE = "🗺️  대한민국 지역 퀴즈 게임  🗺️"
 
-
-class Ending(Enum):
-    """한 판이 끝난 방식.
-
-    정해진 몇 가지 중 하나뿐인 값은 Enum으로 두면 오타를 바로 잡아낸다.
-    문자열을 그대로 쓰면 "cleard"라고 잘못 적어도 프로그램이 조용히 지나가고,
-    조건문이 어긋난 채로 엉뚱한 결과가 나온다.
-    Ending.CLEARD라고 쓰면 그 줄에서 AttributeError가 난다.
-
-    괄호 안의 값은 기록 파일에 저장할 이름이다. Enum 자체는 JSON에 담을 수 없어
-    저장할 때는 .value로 문자열을 꺼낸다.
-    """
-
-    CLEARED = "cleared"  # 도전한 문제를 모두 맞힘
-    WRONG = "wrong"  # 틀려서 멈춤
-    GAVE_UP = "gave_up"  # 진행 중에 그만둠
 
 # 메뉴 항목은 리스트(list)로 관리한다.
 # 리스트는 "순서가 있는 여러 개의 값"을 담는 자료형이고,
@@ -141,70 +125,50 @@ class QuizGame:
         # 섞은 목록에서 앞에서부터 정해진 수만큼 잘라 쓴다.
         # 반복문 안에서 세어 가며 break하면 for의 else가 실행되지 않아
         # "끝까지 통과했다"를 구분할 수 없게 된다.
-        selected = self.quizzes[:count]
-
-        score = 0
-        streak = 0
-        answered = 0  # 실제로 답을 제출한 문제 수
-        hints_used = 0  # 맞혔든 틀렸든 힌트를 본 횟수
-        hints_left = config.STARTING_HINTS
-        hinted = []  # 힌트를 써서 맞힌 문제. 판이 끝난 뒤 복습용으로 모아 둔다.
-        ending = None  # 어떻게 끝났는지. 아래 세 갈래에서 정해진다.
+        game = Round(self.quizzes[:count], player)
 
         # 문제 수만큼만 돌면 되므로 for를 쓴다.
-        for number, quiz in enumerate(selected, start=1):
+        for number, quiz in enumerate(game.quizzes, start=1):
             print()
             print(SUB_LINE)
             quiz.display(number)
             print()
 
-            answer = self.ask_answer_or_quit(quiz, hints_left, number)
+            answer = self.ask_answer_or_quit(quiz, game, number)
             if answer is None:
                 # 그만두기를 선택했다. 지금까지 쌓은 점수와 연승은 그대로 살린다.
-                ending = Ending.GAVE_UP
+                game.ending = Ending.GAVE_UP
                 break
-            raw, used_hint, hints_left = answer
 
-            answered += 1
-            if used_hint:
-                hints_used += 1
+            raw, used_hint = answer
+            correct, point = game.submit(quiz, raw, used_hint)
 
-            if not quiz.check(raw):
+            if not correct:
                 print(f"❌ 오답입니다. 정답은 '{quiz.answer_text()}'입니다.")
                 # 연승전은 오답이 곧 게임 종료라, 여기가 그 문제에 대해
                 # 무언가를 배울 수 있는 마지막 기회다. 그래서 해설을 붙인다.
                 quiz.show_explanation()
-                ending = Ending.WRONG
                 break
 
-            point = quiz.get_point(used_hint)
-            score += point
-            streak += 1
-            if used_hint:
-                hinted.append(quiz)
             note = " · 힌트 사용" if used_hint else ""
-            print(f"✅ 정답입니다! (+{point}점{note}) — 현재 {streak}연승, 총 {score}점")
+            print(f"✅ 정답입니다! (+{point}점{note}) "
+                  f"— 현재 {game.streak}연승, 총 {game.score}점")
 
-            # 5연승마다 힌트를 하나씩 더 준다. 오답이면 게임이 끝나므로
-            # 연승이 끊겨서 되돌려야 하는 경우는 없다.
-            if streak % config.HINT_REWARD_STREAK == 0:
-                hints_left += 1
-                print(f"🎁 {streak}연승 달성! 힌트 +1 (보유 {hints_left}개)")
+            if game.grant_hint_if_due():
+                print(f"🎁 {game.streak}연승 달성! 힌트 +1 (보유 {game.hints_left}개)")
         else:
             # for의 else는 break 없이 반복이 끝났을 때만 실행된다.
             # 여기서는 "한 문제도 틀리지 않고 전 문항을 통과했다"는 뜻이 된다.
             # if의 else와 뜻이 다르므로 헷갈리기 쉽지만, 종료 조건이 세 가지인
             # 연승전에서는 각 결말을 자기 자리에 둘 수 있어 잘 맞는다.
-            ending = Ending.CLEARED
+            game.ending = Ending.CLEARED
 
         # break로 빠져나와도, else를 지나 끝나도 결국 이 줄로 온다.
         # 기록을 먼저 남겨야 갱신 여부를 알 수 있고, 그래야 결과 화면에
         # "새 최고 기록"을 함께 찍을 수 있다.
-        renewed = self.record_result(
-            player, score, streak, answered, count, hints_used, ending
-        )
-        self.show_result(player, score, streak, ending, renewed)
-        self.review_hinted(hinted)
+        renewed = self.record_result(game)
+        self.show_result(game, renewed)
+        self.review_hinted(game.hinted)
 
     # ---------- 사용자 ----------
 
@@ -255,16 +219,16 @@ class QuizGame:
         print("   많이 고를수록 높은 점수를 노릴 수 있습니다.")
         return ask_int(f"몇 문제에 도전할까요? (1-{total}): ", 1, total)
 
-    def record_result(self, player, score, streak, answered, total, hints_used, ending):
+    def record_result(self, game):
         """판 결과를 기록으로 남기고, 개인 최고 기록을 갱신했는지 돌려준다."""
-        # 한 문제도 답하지 않고 나간 판은 기록하지 않는다.
-        # 시작하자마자 그만둔 것까지 쌓이면 "총 12판" 같은 숫자가 의미를 잃는다.
-        if answered == 0:
+        if not game.is_recordable():
             return False
 
-        renewed = player.add_record(score, streak, total, hints_used, ending.value)
-        if score > self.best_score:
-            self.best_score = score
+        renewed = game.player.add_record(
+            game.score, game.streak, game.total, game.hints_used, game.ending.value
+        )
+        if game.score > self.best_score:
+            self.best_score = game.score
         self.save()
         return renewed
 
@@ -288,14 +252,14 @@ class QuizGame:
             print(f"    정답: {quiz.answer_text()}")
             quiz.show_explanation()
 
-    def ask_answer_or_quit(self, quiz, hints_left, number):
+    def ask_answer_or_quit(self, quiz, game, number):
         """답을 받되, 진행 중에 Ctrl+C가 오면 그만둘지 물어본다.
 
         여기서 잡지 않으면 예외가 main까지 올라가면서 판이 통째로 사라지고,
         쌓아 둔 연승과 점수도 함께 날아간다. 진행 상황을 알고 있는 곳이
         play()뿐이라, 기록을 살리려면 이 층에서 받아야 한다.
 
-        반환: (답, 힌트 사용 여부, 남은 힌트) 또는 그만두기를 고르면 None
+        반환: (답, 힌트 사용 여부) 또는 그만두기를 고르면 None
 
         확인하는 도중에 다시 Ctrl+C가 오거나 입력이 끊기면 그대로 위로 올려보낸다.
         그만두겠다는 신호를 두 번 보냈으면 붙잡지 않는 것이 맞고,
@@ -303,7 +267,7 @@ class QuizGame:
         """
         while True:
             try:
-                return self.ask_answer(quiz, hints_left)
+                return self.ask_answer(quiz, game)
             except KeyboardInterrupt:
                 print()
                 if ask_yes_no("⚠️ 지금까지 기록을 남기고 그만둘까요? (y/n): "):
@@ -314,21 +278,20 @@ class QuizGame:
                 quiz.display(number)
                 print()
 
-    def ask_answer(self, quiz, hints_left):
+    def ask_answer(self, quiz, game):
         """형식에 맞는 답이 들어올 때까지 되묻고, 그 입력을 돌려준다.
 
         형식 오류와 오답은 다르다. 형식이 틀렸다고 게임을 끝내면 억울하므로
         여기서는 판정하지 않고 형식만 확인한다.
         무엇이 올바른 형식인지는 문제 유형마다 다르므로 Quiz 객체에게 물어본다.
 
-        반환값이 세 개다. 힌트를 썼는지는 점수 계산에 필요하고,
-        남은 힌트 수는 다음 문제로 이어져야 하기 때문이다.
-            (입력한 답, 힌트를 썼는지, 남은 힌트 수)
+        반환: (입력한 답, 이 문제에서 힌트를 썼는지)
+        남은 힌트 수는 Round가 들고 있으므로 따로 돌려줄 필요가 없다.
         """
         used_hint = False
         while True:
-            can_hint = hints_left > 0 and bool(quiz.hint) and not used_hint
-            guide = f" [h: 힌트 {hints_left}개]" if can_hint else ""
+            can_hint = game.can_use_hint(quiz) and not used_hint
+            guide = f" [h: 힌트 {game.hints_left}개]" if can_hint else ""
             raw = input(f"{quiz.prompt()}{guide}: ").strip()
 
             # 'h'는 힌트 요청으로 먼저 가로챈다.
@@ -339,18 +302,18 @@ class QuizGame:
                     print("⚠️ 이 문제의 힌트는 이미 봤습니다.")
                 elif not quiz.hint:
                     print("⚠️ 이 문제에는 힌트가 없습니다.")
-                elif hints_left <= 0:
+                elif game.hints_left <= 0:
                     print("⚠️ 남은 힌트가 없습니다.")
                 else:
-                    used_hint, hints_left = self.use_hint(quiz, hints_left)
+                    used_hint = self.use_hint(quiz, game)
                 continue
 
             if quiz.is_valid(raw):
-                return raw, used_hint, hints_left
+                return raw, used_hint
             print(f"⚠️ {quiz.input_guide()}")
 
-    def use_hint(self, quiz, hints_left):
-        """힌트를 보여줄지 확인하고, 승낙하면 보여준 뒤 결과를 돌려준다.
+    def use_hint(self, quiz, game):
+        """힌트를 보여줄지 확인하고, 승낙하면 보여준 뒤 썼는지를 돌려준다.
 
         점수가 얼마나 깎이는지 먼저 알려주고 묻는다.
         1점짜리 문제는 0점이 되는데, 연승을 잇는 대가로 점수를 포기하는
@@ -359,31 +322,31 @@ class QuizGame:
         full = quiz.get_point()
         reduced = quiz.get_point(used_hint=True)
         print(f"⚠️ 힌트를 보면 이 문제는 {full}점 → {reduced}점이 되고, "
-              f"남은 힌트는 {hints_left - 1}개가 됩니다.")
+              f"남은 힌트는 {game.hints_left - 1}개가 됩니다.")
 
         if not ask_yes_no("계속할까요? (y/n): "):
-            return False, hints_left
+            return False
 
+        game.spend_hint()
         print(f"💡 {quiz.hint}")
-        return True, hints_left - 1
+        return True
 
-    def show_result(self, player, score, streak, ending, renewed):
+    def show_result(self, game, renewed):
         """한 판이 끝났을 때 결과를 보여준다.
 
-        ending은 Ending 중 하나다. 끝나는 방식이 세 가지라
-        참/거짓 두 갈래로는 담을 수 없다.
         renewed는 이 판으로 개인 최고 기록을 갈아치웠는지 여부다.
         """
+        player = game.player
         print()
         print(LINE)
-        if ending is Ending.CLEARED:
-            print(f"🎉 도전한 {streak}문제를 모두 맞혔습니다!")
-        elif ending is Ending.GAVE_UP:
-            print(f"🚪 중단했습니다 — {streak}연승까지 기록됩니다.")
+        if game.ending is Ending.CLEARED:
+            print(f"🎉 도전한 {game.streak}문제를 모두 맞혔습니다!")
+        elif game.ending is Ending.GAVE_UP:
+            print(f"🚪 중단했습니다 — {game.streak}연승까지 기록됩니다.")
         else:
-            print(f"💀 Game Over — {streak}연승에서 멈췄습니다.")
+            print(f"💀 Game Over — {game.streak}연승에서 멈췄습니다.")
 
-        print(f"🏆 {player.nickname}님 획득 점수: {score}점")
+        print(f"🏆 {player.nickname}님 획득 점수: {game.score}점")
         if renewed:
             print(f"🎉 {player.nickname}님의 새 최고 기록입니다!")
         else:
