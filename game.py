@@ -133,6 +133,12 @@ class QuizGame:
         print(LINE)
 
         player = self.ask_player()
+        count = self.ask_round_size()
+
+        # 섞은 목록에서 앞에서부터 정해진 수만큼 잘라 쓴다.
+        # 반복문 안에서 세어 가며 break하면 for의 else가 실행되지 않아
+        # "끝까지 통과했다"를 구분할 수 없게 된다.
+        selected = self.quizzes[:count]
 
         score = 0
         streak = 0
@@ -143,7 +149,7 @@ class QuizGame:
         ending = None  # 어떻게 끝났는지. 아래 세 갈래에서 정해진다.
 
         # 문제 수만큼만 돌면 되므로 for를 쓴다.
-        for number, quiz in enumerate(self.quizzes, start=1):
+        for number, quiz in enumerate(selected, start=1):
             print()
             print(SUB_LINE)
             quiz.display(number)
@@ -191,7 +197,9 @@ class QuizGame:
         # break로 빠져나와도, else를 지나 끝나도 결국 이 줄로 온다.
         # 기록을 먼저 남겨야 갱신 여부를 알 수 있고, 그래야 결과 화면에
         # "새 최고 기록"을 함께 찍을 수 있다.
-        renewed = self.record_result(player, score, streak, answered, hints_used, ending)
+        renewed = self.record_result(
+            player, score, streak, answered, count, hints_used, ending
+        )
         self.show_result(player, score, streak, ending, renewed)
         self.review_hinted(hinted)
 
@@ -229,16 +237,29 @@ class QuizGame:
                   f"(최고 {user.best_score}점 · {user.play_count()}판)")
         return user
 
-    def record_result(self, player, score, streak, answered, hints_used, ending):
+    def ask_round_size(self):
+        """이번 판에 몇 문제까지 도전할지 정한다.
+
+        연승전은 틀리면 그 자리에서 끝나므로, 많이 고를수록 높은 점수를
+        노릴 수 있지만 판이 길어진다. 짧게 즐기고 싶을 때를 위한 선택이다.
+        점수는 절대값으로 비교하므로 적게 고르면 기록 경신은 어려워진다.
+        """
+        total = len(self.quizzes)
+        if total == 1:
+            # 고를 여지가 없으면 묻지 않는다.
+            return 1
+
+        print("   많이 고를수록 높은 점수를 노릴 수 있습니다.")
+        return ask_int(f"몇 문제에 도전할까요? (1-{total}): ", 1, total)
+
+    def record_result(self, player, score, streak, answered, total, hints_used, ending):
         """판 결과를 기록으로 남기고, 개인 최고 기록을 갱신했는지 돌려준다."""
         # 한 문제도 답하지 않고 나간 판은 기록하지 않는다.
         # 시작하자마자 그만둔 것까지 쌓이면 "총 12판" 같은 숫자가 의미를 잃는다.
         if answered == 0:
             return False
 
-        renewed = player.add_record(
-            score, streak, len(self.quizzes), hints_used, ending.value
-        )
+        renewed = player.add_record(score, streak, total, hints_used, ending.value)
         if score > self.best_score:
             self.best_score = score
         self.save()
@@ -353,7 +374,7 @@ class QuizGame:
         print()
         print(LINE)
         if ending is Ending.CLEARED:
-            print(f"🎉 등록된 {streak}문제를 모두 맞혔습니다!")
+            print(f"🎉 도전한 {streak}문제를 모두 맞혔습니다!")
         elif ending is Ending.GAVE_UP:
             print(f"🚪 중단했습니다 — {streak}연승까지 기록됩니다.")
         else:
