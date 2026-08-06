@@ -21,6 +21,20 @@ import unicodedata
 
 import config
 
+# 이 임포트는 아래 코드에서 쓰이지 않지만 지우면 안 된다.
+# readline이 올라와 있지 않으면 input()의 줄 편집(백스페이스, 방향키)을
+# 운영체제 터미널이 대신 처리하는데, 이쪽은 UTF-8을 모르고 바이트만 센다.
+# 한글은 한 글자가 3바이트라서 백스페이스를 눌러도 3분의 1씩만 지워져,
+# 앞 글자들이 안 지워지고 화면도 깨진다.
+# readline은 글자 단위로 지우고 전각 문자의 폭도 제대로 계산한다.
+#
+# 윈도우에는 이 모듈이 없다. 그쪽 콘솔은 애초에 글자 단위로 지우므로
+# 없으면 없는 대로 넘어간다.
+try:
+    import readline  # noqa: F401
+except ImportError:
+    pass
+
 
 def ask_int(prompt, low, high):
     """low 이상 high 이하의 정수를 입력받아 반환한다.
