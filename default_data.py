@@ -36,9 +36,62 @@ answer 규칙
 """
 
 DEFAULT_QUIZZES = [
-    # ---------- 행정구역 ----------
+    # ---------- 유저문제 ----------
     {
         "id": 1,
+        "type": "choice",
+        "difficulty": "normal",
+        "question": "공항이 없는 도시는?",
+        "choices": ["청주시", "부산시", "광주시", "대전시"],
+        "answer": 4,
+        "hint": "이곳은 경부선과 호남선이 지나는 곳입니다.",
+        "explanation": "대전에는 공항이 없습니다. "
+                        "대신 대전역에서 경부선/경부고속선/호남선을 탈 수 있습니다",
+    },
+    {
+        "id": 2,
+        "type": "choice",
+        "difficulty": "normal",
+        "question": "팔만대장경이 있는 도는?",
+        "choices": ["경상남도", "경상북도", "전라남도", "전라북도"],
+        "answer": 1,
+        "hint": "팔만대장경은 합천군에 있습니다",
+        "explanation": "해인사는 경상남도 합천군 가야면에 위치하고 있습니다.",
+    },
+    {
+        "id": 3,
+        "type": "choice",
+        "difficulty": "normal",
+        "question": "광역시/특별시 중 가장 면적이 넓은 도시는?",
+        "choices": ["대구", "울산", "광주", "인천"],
+        "answer": 1,
+        "hint": "최근에 다른 도시와 병합을 했습니다.",
+        "explanation": "대구가 1499.5 ㎢로 가장 넓습니다. "
+                        "다음으로 인천, 울산, 부산, 서울, 대전, 광주 순입니다.",
+    },
+    {
+        "id": 4,
+        "type": "choice",
+        "difficulty": "hard",
+        "question": "다음 중 강원도에 위치한 도시가 아닌 것은?",
+        "choices": ["평창", "고성", "영양","홍천"],
+        "answer": 3,
+        "hint": "이 도시는 고추가 특산물입니다.",
+        "explanation": "영양은 경상북도의 지역입니다. ",
+    },
+    {
+        "id": 5,
+        "type": "choice",
+        "difficulty": "normal",
+        "question": "남이섬이 위치한 도시는?",
+        "choices": ["강릉", "춘천", "속초", "원주"],
+        "answer": 2,
+        "hint": "이 도시는 닭갈비가 유명합니다. ",
+        "explanation": "남이섬은 강원도 춘천시 남산면에 위치합니다. "
+    },
+    # ---------- 행정구역 ----------
+    {
+        "id": 6,
         "type": "ox",
         "difficulty": "easy",
         "question": "대한민국의 광역시는 총 7개다.",
@@ -49,7 +102,7 @@ DEFAULT_QUIZZES = [
                        "서울은 특별시, 세종은 특별자치시라 광역시가 아닙니다.",
     },
     {
-        "id": 2,
+        "id": 7,
         "type": "choice",
         "difficulty": "normal",
         "question": "다음 중 특별자치도로 전환되지 않은 곳은?",
@@ -60,7 +113,7 @@ DEFAULT_QUIZZES = [
                        "충청북도는 일반 도로 남아 있습니다.",
     },
     {
-        "id": 3,
+        "id": 8,
         "type": "choice",
         "difficulty": "easy",
         "question": "다음 중 광역시가 아닌 도시는?",
@@ -71,7 +124,7 @@ DEFAULT_QUIZZES = [
                        "행정구역상 광역시는 아닙니다.",
     },
     {
-        "id": 4,
+        "id": 9,
         "type": "ox",
         "difficulty": "normal",
         "question": "세종특별자치시는 충청남도에 속한다.",
@@ -82,7 +135,7 @@ DEFAULT_QUIZZES = [
                        "산하에 시·군·구를 두지 않는 단층제입니다.",
     },
     {
-        "id": 5,
+        "id": 10,
         "type": "ox",
         "difficulty": "easy",
         "question": "광주광역시는 전라남도에 속해 있다.",
@@ -93,7 +146,7 @@ DEFAULT_QUIZZES = [
                        "1995년 광역시로 이름이 바뀌었습니다.",
     },
     {
-        "id": 6,
+        "id": 11,
         "type": "choice",
         "difficulty": "normal",
         "question": "대한민국에서 면적이 가장 넓은 광역자치단체는?",
@@ -103,7 +156,7 @@ DEFAULT_QUIZZES = [
         "explanation": "경상북도가 약 19,000㎢로 가장 넓고, 강원특별자치도가 약 16,800㎢로 그 다음입니다.",
     },
     {
-        "id": 7,
+        "id": 12,
         "type": "short",
         "difficulty": "normal",
         "question": "대한민국에서 인구가 가장 많은 광역자치단체는?",
@@ -113,7 +166,7 @@ DEFAULT_QUIZZES = [
         "explanation": "경기도 인구는 약 1,360만 명으로 서울특별시(약 930만 명)보다 많습니다.",
     },
     {
-        "id": 8,
+        "id": 13,
         "type": "choice",
         "difficulty": "hard",
         "question": "다음 중 인구가 가장 적은 광역자치단체는?",
@@ -123,7 +176,7 @@ DEFAULT_QUIZZES = [
         "explanation": "세종특별자치시는 인구 약 39만 명으로 17개 광역자치단체 중 가장 적습니다.",
     },
     {
-        "id": 9,
+        "id": 14,
         "type": "ox",
         "difficulty": "hard",
         "question": "대한민국에서 면적이 가장 작은 광역자치단체는 세종특별자치시다.",
@@ -133,7 +186,7 @@ DEFAULT_QUIZZES = [
         "explanation": "세종은 약 465㎢로 서울(약 605㎢)이나 광주(약 501㎢)보다도 작습니다.",
     },
     {
-        "id": 10,
+        "id": 15,
         "type": "ox",
         "difficulty": "normal",
         "question": "인천광역시는 대한민국에서 두 번째로 인구가 많은 도시다.",
@@ -145,7 +198,7 @@ DEFAULT_QUIZZES = [
 
     # ---------- 도청 소재지 ----------
     {
-        "id": 11,
+        "id": 16,
         "type": "short",
         "difficulty": "hard",
         "question": "전라남도 도청이 있는 군의 이름은?",
@@ -156,7 +209,7 @@ DEFAULT_QUIZZES = [
                        "광주가 1986년 직할시로 분리된 뒤에도 도청은 한동안 그대로 남아 있었습니다.",
     },
     {
-        "id": 12,
+        "id": 17,
         "type": "choice",
         "difficulty": "normal",
         "question": "충청북도 도청이 있는 도시는?",
@@ -167,7 +220,7 @@ DEFAULT_QUIZZES = [
                        "충청북도 인구의 절반 이상이 사는 도시가 됐습니다.",
     },
     {
-        "id": 13,
+        "id": 18,
         "type": "short",
         "difficulty": "hard",
         "question": "충청남도 도청이 있는 군의 이름은?",
@@ -178,7 +231,7 @@ DEFAULT_QUIZZES = [
                        "청사 주소는 홍성군입니다.",
     },
     {
-        "id": 14,
+        "id": 19,
         "type": "short",
         "difficulty": "normal",
         "question": "임진왜란 한산대첩이 벌어진 앞바다를 끼고 있으며, 나전칠기와 충무김밥으로도 알려진 경상남도의 도시는?",
@@ -189,7 +242,7 @@ DEFAULT_QUIZZES = [
                        "조선시대 삼도수군통제영이 있던 데서 지명이 유래했습니다.",
     },
     {
-        "id": 15,
+        "id": 20,
         "type": "short",
         "difficulty": "normal",
         "question": "전북특별자치도 도청이 있는 도시는?",
@@ -198,20 +251,10 @@ DEFAULT_QUIZZES = [
         "hint": "비빔밥과 한옥마을로 유명한 도시입니다.",
         "explanation": "전북도청은 전주시 완산구에 있습니다.",
     },
-    {
-        "id": 16,
-        "type": "choice",
-        "difficulty": "normal",
-        "question": "강원특별자치도 도청이 있는 도시는?",
-        "choices": ["원주", "춘천", "강릉", "속초"],
-        "answer": 2,
-        "hint": "닭갈비와 막국수로 유명한 도시입니다.",
-        "explanation": "강원도청은 춘천시에 있습니다. 인구가 가장 많은 도시는 원주지만 도청은 춘천에 있습니다.",
-    },
 
     # ---------- 산·강·섬 ----------
     {
-        "id": 17,
+        "id": 21,
         "type": "choice",
         "difficulty": "easy",
         "question": "한라산이 위치한 광역자치단체는?",
@@ -221,7 +264,7 @@ DEFAULT_QUIZZES = [
         "explanation": "한라산은 높이 1,947m로 제주도 한가운데에 있으며 남한에서 가장 높은 산입니다.",
     },
     {
-        "id": 18,
+        "id": 22,
         "type": "choice",
         "difficulty": "normal",
         "question": "기암괴석 울산바위와 천불동계곡으로 유명한 강원특별자치도의 산은?",
@@ -232,7 +275,7 @@ DEFAULT_QUIZZES = [
                        "설악산은 1970년 국립공원으로 지정됐고, 해마다 단풍이 가장 먼저 시작되는 곳으로 알려져 있습니다.",
     },
     {
-        "id": 19,
+        "id": 23,
         "type": "choice",
         "difficulty": "normal",
         "question": "대한민국 최초의 국립공원으로 지정된 산은?",
@@ -242,7 +285,7 @@ DEFAULT_QUIZZES = [
         "explanation": "지리산은 1967년 대한민국 제1호 국립공원으로 지정됐습니다.",
     },
     {
-        "id": 20,
+        "id": 24,
         "type": "ox",
         "difficulty": "hard",
         "question": "한려해상국립공원은 경상남도와 전라남도에 걸쳐 있다.",
@@ -253,7 +296,7 @@ DEFAULT_QUIZZES = [
                        "한려해상국립공원은 경남 거제·통영·사천·남해와 전남 여수 일대에 걸쳐 있습니다.",
     },
     {
-        "id": 21,
+        "id": 25,
         "type": "choice",
         "difficulty": "normal",
         "question": "남한에서 가장 긴 강은?",
@@ -263,7 +306,7 @@ DEFAULT_QUIZZES = [
         "explanation": "낙동강은 약 510km로 남한에서 가장 깁니다. 한강은 약 494km입니다.",
     },
     {
-        "id": 22,
+        "id": 26,
         "type": "ox",
         "difficulty": "easy",
         "question": "제주도는 대한민국에서 가장 큰 섬이다.",
@@ -273,7 +316,7 @@ DEFAULT_QUIZZES = [
         "explanation": "제주도는 약 1,850㎢로 대한민국에서 가장 큰 섬입니다.",
     },
     {
-        "id": 23,
+        "id": 27,
         "type": "ox",
         "difficulty": "hard",
         "question": "대한민국에서 두 번째로 큰 섬은 거제도다.",
@@ -283,7 +326,7 @@ DEFAULT_QUIZZES = [
         "explanation": "거제도는 약 380㎢로 제주도 다음으로 큽니다. 다리로 육지와 이어져 있습니다.",
     },
     {
-        "id": 24,
+        "id": 28,
         "type": "choice",
         "difficulty": "normal",
         "question": "거제도가 속한 광역자치단체는?",
@@ -293,7 +336,7 @@ DEFAULT_QUIZZES = [
         "explanation": "거제시는 경상남도에 속하며, 거가대교로 부산과 이어져 있습니다.",
     },
     {
-        "id": 25,
+        "id": 29,
         "type": "ox",
         "difficulty": "normal",
         "question": "독도는 경상북도 울릉군에 속한다.",
@@ -303,7 +346,7 @@ DEFAULT_QUIZZES = [
         "explanation": "정확한 주소는 경상북도 울릉군 울릉읍 독도리입니다.",
     },
     {
-        "id": 26,
+        "id": 30,
         "type": "ox",
         "difficulty": "normal",
         "question": "울릉도는 강원특별자치도에 속한다.",
@@ -313,7 +356,7 @@ DEFAULT_QUIZZES = [
         "explanation": "울릉도는 경상북도 울릉군입니다. 강원도 동해안과 가까워 보이지만 행정구역은 경상북도입니다.",
     },
     {
-        "id": 27,
+        "id": 31,
         "type": "short",
         "difficulty": "normal",
         "question": "국토 최남단에 있는 섬의 이름은?",
@@ -323,7 +366,7 @@ DEFAULT_QUIZZES = [
         "explanation": "마라도는 제주특별자치도 서귀포시 대정읍에 속한 국토 최남단 섬입니다.",
     },
     {
-        "id": 28,
+        "id": 32,
         "type": "short",
         "difficulty": "hard",
         "question": "서해 최북단에 있으며 인천광역시 옹진군에 속한 섬은?",
@@ -333,7 +376,7 @@ DEFAULT_QUIZZES = [
         "explanation": "백령도는 인천 옹진군에 속하며 인천항에서 배로 네 시간 넘게 걸립니다.",
     },
     {
-        "id": 29,
+        "id": 33,
         "type": "ox",
         "difficulty": "normal",
         "question": "강화도는 인천광역시에 속한다.",
@@ -343,7 +386,7 @@ DEFAULT_QUIZZES = [
         "explanation": "강화군은 1995년 경기도에서 인천광역시로 편입됐습니다.",
     },
     {
-        "id": 30,
+        "id": 34,
         "type": "choice",
         "difficulty": "hard",
         "question": "다음 중 섬이 가장 많은 광역자치단체는?",
@@ -355,7 +398,7 @@ DEFAULT_QUIZZES = [
 
     # ---------- 명소·유산 ----------
     {
-        "id": 31,
+        "id": 35,
         "type": "choice",
         "difficulty": "easy",
         "question": "불국사와 석굴암이 있는 도시는?",
@@ -365,7 +408,7 @@ DEFAULT_QUIZZES = [
         "explanation": "경상북도 경주시에 있으며 1995년 유네스코 세계유산으로 등재됐습니다.",
     },
     {
-        "id": 32,
+        "id": 36,
         "type": "choice",
         "difficulty": "normal",
         "question": "강물이 마을을 휘감아 도는 지형으로 이름이 붙은, 유네스코 세계유산 민속마을이 있는 경상북도의 도시는?",
@@ -376,7 +419,7 @@ DEFAULT_QUIZZES = [
                        "2010년 경주 양동마을과 함께 유네스코 세계유산으로 등재됐습니다.",
     },
     {
-        "id": 33,
+        "id": 37,
         "type": "choice",
         "difficulty": "normal",
         "question": "조선 정조가 쌓은 화성(華城)이 있는 경기도의 도시는?",
@@ -387,7 +430,7 @@ DEFAULT_QUIZZES = [
                        "유네스코 세계유산 화성은 수원의 성곽입니다.",
     },
     {
-        "id": 34,
+        "id": 38,
         "type": "choice",
         "difficulty": "normal",
         "question": "병자호란 때 인조가 피신했던 남한산성이 있는 경기도의 도시는?",
@@ -398,17 +441,7 @@ DEFAULT_QUIZZES = [
                        "2014년 유네스코 세계유산으로 등재됐습니다.",
     },
     {
-        "id": 35,
-        "type": "choice",
-        "difficulty": "hard",
-        "question": "팔만대장경을 보관한 해인사가 있는 경상남도의 군은?",
-        "choices": ["합천군", "산청군", "함양군", "거창군"],
-        "answer": 1,
-        "hint": "가야산 자락에 있는 군입니다.",
-        "explanation": "해인사는 경상남도 합천군 가야산에 있으며, 장경판전은 1995년 유네스코 세계유산으로 등재됐습니다.",
-    },
-    {
-        "id": 36,
+        "id": 39,
         "type": "ox",
         "difficulty": "hard",
         "question": "백제역사유적지구는 충청남도에만 분포한다.",
@@ -418,7 +451,7 @@ DEFAULT_QUIZZES = [
         "explanation": "공주·부여(충남)뿐 아니라 익산(전북)의 왕궁리 유적과 미륵사지도 함께 등재됐습니다.",
     },
     {
-        "id": 37,
+        "id": 40,
         "type": "short",
         "difficulty": "hard",
         "question": "조선 최초의 사액서원인 소수서원이 있는 경상북도의 도시는?",
@@ -429,7 +462,7 @@ DEFAULT_QUIZZES = [
                        "명종에게 편액을 받아 최초의 사액서원이 됐고, 2019년 '한국의 서원'으로 세계유산에 등재됐습니다.",
     },
     {
-        "id": 38,
+        "id": 41,
         "type": "choice",
         "difficulty": "hard",
         "question": "1,000개가 넘는 섬을 품고 있으며 갯벌로 유네스코 세계유산에 등재된 전라남도의 군은?",
@@ -442,7 +475,7 @@ DEFAULT_QUIZZES = [
 
     # ---------- 특산물·축제 ----------
     {
-        "id": 39,
+        "id": 42,
         "type": "choice",
         "difficulty": "easy",
         "question": "국내 최대 녹차 산지로 알려진 전라남도의 군은?",
@@ -452,7 +485,7 @@ DEFAULT_QUIZZES = [
         "explanation": "보성군은 전국 녹차 재배 면적의 상당 부분을 차지하는 국내 최대 산지입니다.",
     },
     {
-        "id": 40,
+        "id": 43,
         "type": "choice",
         "difficulty": "easy",
         "question": "인삼 유통으로 유명한 충청남도의 군은?",
@@ -462,7 +495,7 @@ DEFAULT_QUIZZES = [
         "explanation": "금산군은 국내 최대 인삼 집산지로, 금산 인삼시장에서 전국 인삼의 상당량이 거래됩니다.",
     },
     {
-        "id": 41,
+        "id": 44,
         "type": "short",
         "difficulty": "normal",
         "question": "대게로 유명한 경상북도 동해안의 군은?",
@@ -472,7 +505,7 @@ DEFAULT_QUIZZES = [
         "explanation": "영덕군은 경상북도 동해안에 있으며 영덕대게의 주산지입니다.",
     },
     {
-        "id": 42,
+        "id": 45,
         "type": "choice",
         "difficulty": "hard",
         "question": "유기(놋그릇) 공예로 유명해 '맞춤'이라는 말과 함께 쓰이는 경기도의 도시는?",
@@ -483,7 +516,7 @@ DEFAULT_QUIZZES = [
                        "'안성맞춤'이라는 말이 생겼습니다.",
     },
     {
-        "id": 43,
+        "id": 46,
         "type": "choice",
         "difficulty": "easy",
         "question": "대천해수욕장에서 머드축제가 열리는 충청남도의 도시는?",
@@ -493,7 +526,7 @@ DEFAULT_QUIZZES = [
         "explanation": "보령시는 충청남도 서해안에 있으며, 대천해수욕장에서 매년 여름 머드축제가 열립니다.",
     },
     {
-        "id": 44,
+        "id": 47,
         "type": "choice",
         "difficulty": "normal",
         "question": "겨울마다 얼음낚시로 산천어축제가 열리는 강원특별자치도의 군은?",
@@ -503,7 +536,7 @@ DEFAULT_QUIZZES = [
         "explanation": "화천군은 강원특별자치도 북부에 있으며, 겨울 산천어축제는 국내 대표 겨울 축제로 꼽힙니다.",
     },
     {
-        "id": 45,
+        "id": 48,
         "type": "choice",
         "difficulty": "hard",
         "question": "벚꽃으로 유명한 진해 군항제가 열리는 곳은 현재 행정구역상 어느 시에 속하는가?",
@@ -514,7 +547,7 @@ DEFAULT_QUIZZES = [
                        "군항제는 1963년 시작된 국내 최대 규모의 벚꽃축제입니다.",
     },
     {
-        "id": 46,
+        "id": 49,
         "type": "choice",
         "difficulty": "normal",
         "question": "유네스코 인류무형문화유산에 등재된 단오제가 열리는 도시는?",
@@ -524,7 +557,7 @@ DEFAULT_QUIZZES = [
         "explanation": "강릉단오제는 2005년 유네스코 인류무형문화유산으로 등재됐습니다.",
     },
     {
-        "id": 47,
+        "id": 50,
         "type": "choice",
         "difficulty": "easy",
         "question": "아바이마을과 갯배로 알려진 강원특별자치도 동해안의 도시는?",
@@ -535,7 +568,7 @@ DEFAULT_QUIZZES = [
                        "갯배는 줄을 당겨 좁은 물길을 건너는 이 마을의 전통 나룻배입니다.",
     },
     {
-        "id": 48,
+        "id": 51,
         "type": "short",
         "difficulty": "hard",
         "question": "너른 평야 덕에 지평선을 볼 수 있다 하여 지평선축제가 열리는 전북특별자치도의 시는?",
@@ -548,7 +581,7 @@ DEFAULT_QUIZZES = [
 
     # ---------- 교통 ----------
     {
-        "id": 49,
+        "id": 52,
         "type": "choice",
         "difficulty": "easy",
         "question": "인천국제공항이 자리한 섬은?",
@@ -558,7 +591,7 @@ DEFAULT_QUIZZES = [
         "explanation": "인천국제공항은 인천광역시 중구 영종도에 있습니다.",
     },
     {
-        "id": 50,
+        "id": 53,
         "type": "ox",
         "difficulty": "hard",
         "question": "제주국제공항은 서귀포시에 있다.",
