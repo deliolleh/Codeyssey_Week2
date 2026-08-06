@@ -3,6 +3,8 @@
 | 파일 | 내용 |
 |---|---|
 | `env.png` | 개발 환경 — Python 3.13.9, Git 2.50.1, 사용자 설정, 원격 저장소 |
+| `menu_exit.png` | 메뉴와 종료 — 번호 선택과 종료 안내 |
+| `interrupt.png` | 진행 중 Ctrl+C — 그만둘지 확인하고 기록을 남긴 뒤 메뉴로 복귀 |
 | `list.png` | 퀴즈 목록 — 등록된 50문항 |
 | `play.png` | 퀴즈 풀기 — 닉네임·문제 수 선택 후 출제 |
 | `play_result.png` | 퀴즈 풀기 — 오답 시 해설 출력과 Game Over |
